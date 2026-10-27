@@ -108,7 +108,11 @@ def analyze_anchor_fallout(employer_name: str) -> str:
     Use this tool when an anchor employer is closing.
     It calculates the hidden supply-chain shockwave.
     """
-    return asyncio.run(analyze_anchor_fallout_logic(employer_name))
+    try:
+        loop = asyncio.get_running_loop()
+        return loop.run_until_complete(analyze_anchor_fallout_logic(employer_name))
+    except RuntimeError:
+        return asyncio.run(analyze_anchor_fallout_logic(employer_name))
 
 # =====================================================================
 # 3. AGENT DEFINITION (FOR ADK CLI & WEB UI)
