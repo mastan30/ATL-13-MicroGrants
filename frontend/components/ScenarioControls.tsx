@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { ScenarioMeta } from '@/types/scenario';
-import { Sliders, RefreshCw, FileText, DollarSign, TrendingUp, Sparkles, Building2 } from 'lucide-react';
+import { RefreshCw, FileText, DollarSign, TrendingUp, Building2, Bot } from 'lucide-react';
 
 interface ScenarioControlsProps {
   scenario: ScenarioMeta;
@@ -12,6 +12,7 @@ interface ScenarioControlsProps {
   onGrantEffectChange: (effect: number) => void;
   onRerun: () => void;
   onOpenMemo: () => void;
+  onOpenAgent?: () => void;
 }
 
 export const ScenarioControls: React.FC<ScenarioControlsProps> = ({
@@ -21,6 +22,7 @@ export const ScenarioControls: React.FC<ScenarioControlsProps> = ({
   onGrantEffectChange,
   onRerun,
   onOpenMemo,
+  onOpenAgent,
 }) => {
   const budgetPresets = [25000, 50000, 75000, 100000];
   const effectOptions = [
@@ -106,6 +108,16 @@ export const ScenarioControls: React.FC<ScenarioControlsProps> = ({
           <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
           {isLoading ? 'Running Agent...' : 'Re-run Scenario'}
         </button>
+
+        {onOpenAgent && (
+          <button
+            onClick={onOpenAgent}
+            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 font-bold text-xs border border-blue-500/30 transition"
+          >
+            <Bot className="w-3.5 h-3.5 text-blue-400" />
+            Ask Agent
+          </button>
+        )}
 
         <button
           onClick={onOpenMemo}

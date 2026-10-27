@@ -6,14 +6,11 @@ import { BusinessDecision, RunnerUp } from '@/types/scenario';
 import {
   X,
   ShieldCheck,
-  ShieldAlert,
   GitFork,
   ArrowRight,
   Database,
   Building,
-  TrendingUp,
   MapPin,
-  CheckCircle,
   HelpCircle,
 } from 'lucide-react';
 

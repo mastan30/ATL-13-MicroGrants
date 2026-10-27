@@ -1,7 +1,8 @@
 'use strict';
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
+import type { Map, Marker, Polyline, CircleMarker, LeafletMouseEvent } from 'leaflet';
 import { BusinessDecision, AnchorPoint, PathSegment } from '@/types/scenario';
 
 interface MapViewProps {
@@ -22,11 +23,11 @@ export const MapView: React.FC<MapViewProps> = ({
   onSelectBusiness,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const leafletMapRef = useRef<any>(null);
+  const leafletMapRef = useRef<Map | null>(null);
   const layersRef = useRef<{
-    markers: any[];
-    cascadeLines: any[];
-    anchorMarker: any | null;
+    markers: CircleMarker[];
+    cascadeLines: (Polyline | Marker)[];
+    anchorMarker: Marker | null;
   }>({
     markers: [],
     cascadeLines: [],
@@ -51,8 +52,8 @@ export const MapView: React.FC<MapViewProps> = ({
         if (!isMounted || !mapContainerRef.current) return;
 
         // Clean stale leaflet ID if element was re-used
-        if ((mapContainerRef.current as any)._leaflet_id && !leafletMapRef.current) {
-          delete (mapContainerRef.current as any)._leaflet_id;
+        if ((mapContainerRef.current as HTMLDivElement & { _leaflet_id?: string })._leaflet_id && !leafletMapRef.current) {
+          delete (mapContainerRef.current as HTMLDivElement & { _leaflet_id?: string })._leaflet_id;
         }
 
         if (!leafletMapRef.current) {
@@ -162,15 +163,15 @@ export const MapView: React.FC<MapViewProps> = ({
           }).addTo(map);
 
           // Hover events for React floating card with exact screen coordinates
-          circle.on('mouseover', (e: any) => {
-            const clientX = e.originalEvent ? e.originalEvent.clientX : (e.containerPoint?.x ?? 0);
-            const clientY = e.originalEvent ? e.originalEvent.clientY : (e.containerPoint?.y ?? 0);
+          circle.on('mouseover', (e: LeafletMouseEvent) => {
+            const clientX = e.originalEvent ? (e.originalEvent as MouseEvent).clientX : (e.containerPoint?.x ?? 0);
+            const clientY = e.originalEvent ? (e.originalEvent as MouseEvent).clientY : (e.containerPoint?.y ?? 0);
             onHoverBusiness(biz, { x: clientX, y: clientY });
           });
 
-          circle.on('mousemove', (e: any) => {
-            const clientX = e.originalEvent ? e.originalEvent.clientX : (e.containerPoint?.x ?? 0);
-            const clientY = e.originalEvent ? e.originalEvent.clientY : (e.containerPoint?.y ?? 0);
+          circle.on('mousemove', (e: LeafletMouseEvent) => {
+            const clientX = e.originalEvent ? (e.originalEvent as MouseEvent).clientX : (e.containerPoint?.x ?? 0);
+            const clientY = e.originalEvent ? (e.originalEvent as MouseEvent).clientY : (e.containerPoint?.y ?? 0);
             onHoverBusiness(biz, { x: clientX, y: clientY });
           });
 
@@ -198,7 +199,18 @@ export const MapView: React.FC<MapViewProps> = ({
         leafletMapRef.current = null;
       }
     };
-  }, [anchor, businesses]);
+  }, [anchor, businesses, onHoverBusiness, onSelectBusiness]);
+
+  /* -------------------------------------------------------------------------- */
+  /* PAN MAP TO SELECTED BUSINESS                                               */
+  /* -------------------------------------------------------------------------- */
+  useEffect(() => {
+    if (!leafletMapRef.current || !selectedBusiness) return;
+    leafletMapRef.current.panTo([selectedBusiness.lat, selectedBusiness.lon], {
+      animate: true,
+      duration: 0.8,
+    });
+  }, [selectedBusiness]);
 
   /* -------------------------------------------------------------------------- */
   /* DRAW CASCADE LINES FOR HIGHLIGHTED BUSINESS                                */

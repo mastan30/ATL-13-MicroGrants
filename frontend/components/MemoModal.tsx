@@ -38,7 +38,10 @@ export const MemoModal: React.FC<MemoModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+    <div
+      style={{ zIndex: 99999 }}
+      className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn"
+    >
       <div className="relative w-full max-w-3xl max-h-[85vh] bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden text-slate-100">
         {/* Modal Header */}
         <div className="p-4 px-6 border-b border-slate-800 flex items-center justify-between bg-slate-950/70">

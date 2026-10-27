@@ -1,7 +1,7 @@
 'use strict';
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { DecisionsResponse, BusinessDecision } from '@/types/scenario';
 import initialMockData from '@/data/mock_decisions.json';
@@ -10,15 +10,14 @@ import { SensitivityBanner } from '@/components/SensitivityBanner';
 import { HoverCard } from '@/components/HoverCard';
 import { DetailSidePanel } from '@/components/DetailSidePanel';
 import { MemoModal } from '@/components/MemoModal';
+import { AgentChatPanel } from '@/components/AgentChatPanel';
 import {
   ShieldCheck,
   Building2,
   PieChart,
   DollarSign,
   TrendingUp,
-  MapPin,
-  ExternalLink,
-  Info,
+  Sparkles,
 } from 'lucide-react';
 
 // Dynamic import for Leaflet / MapView to disable SSR
@@ -27,7 +26,7 @@ const MapView = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full min-h-[580px] rounded-2xl bg-slate-950 flex flex-col items-center justify-center border border-slate-800 text-slate-400">
+      <div className="w-full h-full min-h-[680px] rounded-2xl bg-slate-950 flex flex-col items-center justify-center border border-slate-800 text-slate-400">
         <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-3"></div>
         <p className="text-sm font-medium">Loading BigQuery Property Graph Map...</p>
       </div>
@@ -101,8 +100,8 @@ export default function MicroGrantsDashboard() {
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-      {/* Top Navigation */}
-      <header className="border-b border-slate-800/80 bg-slate-900/90 backdrop-blur-md sticky top-0 z-30 px-6 py-3.5 flex items-center justify-between">
+      {/* Top Navigation Bar */}
+      <header className="border-b border-slate-800/80 bg-slate-900/90 backdrop-blur-md sticky top-0 z-30 px-6 py-3 flex items-center justify-between shadow-lg">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-black text-white text-base shadow-lg shadow-blue-500/20">
             A4I
@@ -112,8 +111,9 @@ export default function MicroGrantsDashboard() {
               <h1 className="font-bold text-base text-white tracking-tight">
                 Community Economic Resilience & Micro-Grants
               </h1>
-              <span className="bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded uppercase">
-                Challenge 3
+              <span className="bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded uppercase flex items-center gap-1">
+                <Sparkles className="w-3 h-3" />
+                Live Agent
               </span>
             </div>
             <p className="text-xs text-slate-400">
@@ -127,8 +127,8 @@ export default function MicroGrantsDashboard() {
 
         <div className="flex items-center gap-3">
           <div className="hidden md:flex items-center gap-2 text-xs text-slate-400 bg-slate-800/60 px-3 py-1.5 rounded-xl border border-slate-700/50">
-            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-            <span>Deterministic Allocations + Gemini Memo</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>Anchor Agent GQL Graph Connected</span>
           </div>
 
           <button
@@ -142,8 +142,8 @@ export default function MicroGrantsDashboard() {
       </header>
 
       {/* Main Container */}
-      <div className="flex-1 p-6 max-w-7xl w-full mx-auto flex flex-col gap-5">
-        {/* Scenario Controls */}
+      <div className="flex-1 p-6 max-w-[1600px] w-full mx-auto flex flex-col gap-5">
+        {/* Scenario Controls Bar */}
         <ScenarioControls
           scenario={data.scenario}
           isLoading={isLoading}
@@ -159,25 +159,34 @@ export default function MicroGrantsDashboard() {
           grantEffect={data.scenario.grant_effect}
         />
 
-        {/* Interactive Map Section */}
-        <div
-          style={{ height: '620px', minHeight: '620px' }}
-          className="relative w-full h-[620px] min-h-[620px] rounded-2xl overflow-hidden shadow-2xl border border-slate-800"
-        >
-          <MapView
-            anchor={data.anchor}
-            businesses={data.businesses}
-            activeBusiness={hoveredBusiness}
-            selectedBusiness={selectedBusiness}
-            onHoverBusiness={(biz, pos) => {
-              setHoveredBusiness(biz);
-              setHoverPosition(pos);
-            }}
-            onSelectBusiness={(biz) => setSelectedBusiness(biz)}
-          />
+        {/* Side-by-Side Split Workspace: Map on Left, Agent Chat on Right */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch h-[680px] min-h-[680px]">
+          {/* Left Column: Interactive Leaflet Property Graph Map (7 cols) */}
+          <div className="lg:col-span-7 xl:col-span-7 relative w-full h-[680px] min-h-[680px] rounded-2xl overflow-hidden shadow-2xl border border-slate-800">
+            <MapView
+              anchor={data.anchor}
+              businesses={data.businesses}
+              activeBusiness={hoveredBusiness}
+              selectedBusiness={selectedBusiness}
+              onHoverBusiness={(biz, pos) => {
+                setHoveredBusiness(biz);
+                setHoverPosition(pos);
+              }}
+              onSelectBusiness={(biz) => setSelectedBusiness(biz)}
+            />
+          </div>
+
+          {/* Right Column: Interactive Docked Agent Chat Panel (5 cols) */}
+          <div className="lg:col-span-5 xl:col-span-5 w-full h-[680px] min-h-[680px]">
+            <AgentChatPanel
+              businesses={data.businesses}
+              onSelectBusiness={(biz) => setSelectedBusiness(biz)}
+              selectedBusiness={selectedBusiness}
+            />
+          </div>
         </div>
 
-        {/* Global Floating Overlays (outside overflow-hidden map container) */}
+        {/* Global Floating Overlays */}
         <HoverCard business={hoveredBusiness} position={hoverPosition} />
         <DetailSidePanel
           business={selectedBusiness}
@@ -186,7 +195,7 @@ export default function MicroGrantsDashboard() {
         />
 
         {/* Bottom Equity Audit & Performance Metrics Bar */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-1">
           <div className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-4 shadow-md flex items-center gap-3">
             <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
               <DollarSign className="w-5 h-5" />

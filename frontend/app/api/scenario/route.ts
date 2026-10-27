@@ -50,7 +50,6 @@ export async function POST(req: NextRequest) {
 
     // Deterministic allocation tool logic:
     // Distribute budget proportionally across top upstream suppliers and vulnerable direct storefronts
-    const totalRawDistress = 14000 + 11000 + 13000 + 12000; // 50,000 base
     const scaleFactor = budget / 50000;
 
     // Sensitivity calculation:
@@ -87,7 +86,7 @@ export async function POST(req: NextRequest) {
 
     cachedResponse = base;
     return NextResponse.json(base);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Scenario route error:', error);
     return NextResponse.json(cachedResponse, { status: 200 });
   }
