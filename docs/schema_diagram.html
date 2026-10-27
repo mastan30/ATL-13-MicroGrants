@@ -103,7 +103,7 @@
 
 <div class="section">
     <h2>Summary of Tables</h2>
-    <p>The notebook creates a total of <strong>six tables</strong> in BigQuery. The data splits into Node tables (things), Edge tables (relationships), and Attribute tables (enrichment data). This explicit division matches exactly what BigQuery's <code>CREATE PROPERTY GRAPH</code> statement requires.</p>
+    <p>The notebook creates a total of <strong>six tables</strong> in BigQuery. The data splits into Node tables (things), Edge tables (relationships), and Lookup/Attribute tables (enrichment data). Only the node and edge tables go into the <code>LocalEconomy</code> property graph; <code>borrowed_from</code> and <code>tract_demographics</code> are joined by key.</p>
 
     <table>
         <thead>
@@ -141,7 +141,7 @@
         </tr>
         <tr>
             <td><code>borrowed_from</code></td>
-            <td>Edge</td>
+            <td>Lookup</td>
             <td><strong>Fully Real</strong></td>
             <td>SBA 7(a) FOIA loan records (FY2020-present) showing business to lender relationships, including failures (charge-offs).</td>
         </tr>
@@ -177,7 +177,7 @@
                 <li><div><span class="col-name">name</span><span class="col-desc">DBA (Doing Business As) name</span></div><span class="col-type">String</span></li>
                 <li><div><span class="col-name">legal_name</span></div><span class="col-type">String</span></li>
                 <li><div><span class="col-name">address</span></div><span class="col-type">String</span></li>
-                <li><div><span class="col-name">zip</span><span class="col-desc">First 5 digits</span></div><span class="col-type">String</span></li>
+                <li><div><span class="col-name">zip</span><span class="col-desc">First 5 digits; often a mailing address, use lat/lon</span></div><span class="col-type">String</span></li>
                 <li><div><span class="col-name">naics</span><span class="col-desc">Self-reported industry code</span></div><span class="col-type">String</span></li>
                 <li><div><span class="col-name">naics4</span><span class="col-desc">4-digit rollup of NAICS</span></div><span class="col-type">String</span></li>
                 <li><div><span class="col-name">corridor</span><span class="col-desc">City assigned bounding region</span></div><span class="col-type">String</span></li>
@@ -277,7 +277,7 @@
         <div class="table-card">
             <div class="table-header">
                 <span>borrowed_from</span>
-                <span class="table-role edge">Edge</span>
+                <span class="table-role attr">Lookup</span>
             </div>
             <ul class="col-list">
                 <li>
