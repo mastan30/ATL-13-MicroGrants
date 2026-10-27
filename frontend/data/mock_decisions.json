@@ -1,0 +1,577 @@
+{
+  "scenario": {
+    "block_id": "060750178021003",
+    "block_name": "Mid-Market Tech & Civic Office Center",
+    "jobs": 1400,
+    "budget": 50000,
+    "grant_effect": 0.3,
+    "corridor": "Central Market"
+  },
+  "anchor": {
+    "block_id": "060750178021003",
+    "name": "Anchor Employer Block (1,400 Workers Closing)",
+    "jobs": 1400,
+    "lat": 37.7818,
+    "lon": -122.4112
+  },
+  "businesses": [
+    {
+      "business_id": "sf_biz_3119_bayside",
+      "name": "Bayside Roasters",
+      "address": "1042 Folsom St",
+      "lat": 37.7779,
+      "lon": -122.4068,
+      "naics4": "3119",
+      "industry_name": "Coffee & Beverage Manufacturing",
+      "status": "funded",
+      "amount": 14000,
+      "exposure": 0.46,
+      "hops_from_anchor": 2,
+      "role": "upstream_supplier",
+      "protects": [
+        {
+          "business_id": "sf_biz_7225_sixth_st",
+          "name": "Sixth St Cafe",
+          "hops": 1,
+          "intensity": 0.14
+        },
+        {
+          "business_id": "sf_biz_7225_yerba",
+          "name": "Yerba Deli",
+          "hops": 1,
+          "intensity": 0.09
+        }
+      ],
+      "paths": [
+        {
+          "from": {
+            "id": "060750178021003",
+            "name": "Office Anchor (1,400 Jobs)",
+            "lat": 37.7818,
+            "lon": -122.4112,
+            "kind": "anchor"
+          },
+          "to": {
+            "id": "sf_biz_7225_sixth_st",
+            "name": "Sixth St Cafe",
+            "lat": 37.7811,
+            "lon": -122.4095,
+            "kind": "business"
+          },
+          "relationship": "DrawsFootfall",
+          "worker_share": 0.42
+        },
+        {
+          "from": {
+            "id": "sf_biz_3119_bayside",
+            "name": "Bayside Roasters",
+            "lat": 37.7779,
+            "lon": -122.4068,
+            "kind": "business"
+          },
+          "to": {
+            "id": "sf_biz_7225_sixth_st",
+            "name": "Sixth St Cafe",
+            "lat": 37.7811,
+            "lon": -122.4095,
+            "kind": "business"
+          },
+          "relationship": "Supplies",
+          "intensity": 0.14
+        }
+      ],
+      "evidence": {
+        "real": ["SBA 7(a) active borrower in good standing ($120k)", "Registered SF commercial tax filer 11 yrs"],
+        "modeled": ["BEA input-output coffee supply ratio (14% direct requirement)"]
+      },
+      "tract": {
+        "tract_id": "06075017802",
+        "poverty_rate": 0.24,
+        "no_vehicle_rate": 0.45
+      },
+      "justification": "Anchor closure removes office footfall from two primary cafes. Bayside absorbs 46% aggregate revenue contraction across those buyers. Funding stabilizes production, safeguarding 9 manufacturing jobs and supply continuity for Central Market storefronts."
+    },
+    {
+      "business_id": "sf_biz_7225_sixth_st",
+      "name": "Sixth St Cafe",
+      "address": "42 6th St",
+      "lat": 37.7811,
+      "lon": -122.4095,
+      "naics4": "7225",
+      "industry_name": "Full-Service & Specialty Eatery",
+      "status": "funded",
+      "amount": 11000,
+      "exposure": 0.68,
+      "hops_from_anchor": 1,
+      "role": "anchor_direct",
+      "protects": [],
+      "paths": [
+        {
+          "from": {
+            "id": "060750178021003",
+            "name": "Office Anchor (1,400 Jobs)",
+            "lat": 37.7818,
+            "lon": -122.4112,
+            "kind": "anchor"
+          },
+          "to": {
+            "id": "sf_biz_7225_sixth_st",
+            "name": "Sixth St Cafe",
+            "lat": 37.7811,
+            "lon": -122.4095,
+            "kind": "business"
+          },
+          "relationship": "DrawsFootfall",
+          "worker_share": 0.48
+        }
+      ],
+      "evidence": {
+        "real": ["SF legacy business registry applicant", "Zero historical SBA defaults"],
+        "modeled": ["500m pedestrian walking catchment model (48% office dependent)"]
+      },
+      "tract": {
+        "tract_id": "06075017802",
+        "poverty_rate": 0.28,
+        "no_vehicle_rate": 0.52
+      },
+      "justification": "Direct frontline exposure: loses 68% of lunch and morning coffee volume upon block closure. Grant bridges 90-day operational pivot to residential catering and delivery."
+    },
+    {
+      "business_id": "sf_biz_7223_kearny",
+      "name": "Kearny Kitchen & Catering",
+      "address": "145 6th St",
+      "lat": 37.7803,
+      "lon": -122.4082,
+      "naics4": "7223",
+      "industry_name": "Special Food Services & Commissary",
+      "status": "funded",
+      "amount": 13000,
+      "exposure": 0.51,
+      "hops_from_anchor": 2,
+      "role": "upstream_supplier",
+      "protects": [
+        {
+          "business_id": "sf_biz_7113_larkin",
+          "name": "Larkin Event Hall",
+          "hops": 1,
+          "intensity": 0.22
+        }
+      ],
+      "paths": [
+        {
+          "from": {
+            "id": "060750178021003",
+            "name": "Office Anchor (1,400 Jobs)",
+            "lat": 37.7818,
+            "lon": -122.4112,
+            "kind": "anchor"
+          },
+          "to": {
+            "id": "sf_biz_7223_kearny",
+            "name": "Kearny Kitchen & Catering",
+            "lat": 37.7803,
+            "lon": -122.4082,
+            "kind": "business"
+          },
+          "relationship": "DrawsFootfall",
+          "worker_share": 0.31
+        },
+        {
+          "from": {
+            "id": "sf_biz_7223_kearny",
+            "name": "Kearny Kitchen & Catering",
+            "lat": 37.7803,
+            "lon": -122.4082,
+            "kind": "business"
+          },
+          "to": {
+            "id": "sf_biz_7113_larkin",
+            "name": "Larkin Event Hall",
+            "lat": 37.7805,
+            "lon": -122.4165,
+            "kind": "business"
+          },
+          "relationship": "Supplies",
+          "intensity": 0.22
+        }
+      ],
+      "evidence": {
+        "real": ["Local health inspection Grade A (98)", "Commercial commissary lease through 2029"],
+        "modeled": ["BEA 7223 -> 7113 catering coefficient"]
+      },
+      "tract": {
+        "tract_id": "06075017601",
+        "poverty_rate": 0.26,
+        "no_vehicle_rate": 0.49
+      },
+      "justification": "Commissary kitchen supplies civic functions and local venue bookings. Direct loss of anchor corporate catering threatens kitchen viability, which would cascade to cancel weekend community programming at Larkin Hall."
+    },
+    {
+      "business_id": "sf_biz_3118_mission_grain",
+      "name": "Mission Grains & Bakery",
+      "address": "1118 Mission St",
+      "lat": 37.7792,
+      "lon": -122.4118,
+      "naics4": "3118",
+      "industry_name": "Bakeries and Tortilla Manufacturing",
+      "status": "funded",
+      "amount": 12000,
+      "exposure": 0.39,
+      "hops_from_anchor": 2,
+      "role": "upstream_supplier",
+      "protects": [
+        {
+          "business_id": "sf_biz_7225_sixth_st",
+          "name": "Sixth St Cafe",
+          "hops": 1,
+          "intensity": 0.11
+        },
+        {
+          "business_id": "sf_biz_7225_yerba",
+          "name": "Yerba Deli",
+          "hops": 1,
+          "intensity": 0.08
+        }
+      ],
+      "paths": [
+        {
+          "from": {
+            "id": "sf_biz_3118_mission_grain",
+            "name": "Mission Grains & Bakery",
+            "lat": 37.7792,
+            "lon": -122.4118,
+            "kind": "business"
+          },
+          "to": {
+            "id": "sf_biz_7225_sixth_st",
+            "name": "Sixth St Cafe",
+            "lat": 37.7811,
+            "lon": -122.4095,
+            "kind": "business"
+          },
+          "relationship": "Supplies",
+          "intensity": 0.11
+        }
+      ],
+      "evidence": {
+        "real": ["SBA Microloan recipient 2024", "7 on-site unionized baking jobs"],
+        "modeled": ["Wholesale bread & pastry supply linkage"]
+      },
+      "tract": {
+        "tract_id": "06075017802",
+        "poverty_rate": 0.23,
+        "no_vehicle_rate": 0.43
+      },
+      "justification": "Wholesale bakery providing artisanal bread supplies to 8 neighborhood eateries. Stabilizing Mission Grains protects critical breakfast and lunch inventory margins across the corridor."
+    },
+    {
+      "business_id": "sf_biz_7225_yerba",
+      "name": "Yerba Deli & Market",
+      "address": "988 Market St",
+      "lat": 37.7824,
+      "lon": -122.4105,
+      "naics4": "7225",
+      "industry_name": "Delicatessen & Grocer",
+      "status": "exposed_not_funded",
+      "amount": 0,
+      "exposure": 0.62,
+      "hops_from_anchor": 1,
+      "role": "anchor_direct",
+      "protects": [],
+      "paths": [
+        {
+          "from": {
+            "id": "060750178021003",
+            "name": "Office Anchor (1,400 Jobs)",
+            "lat": 37.7818,
+            "lon": -122.4112,
+            "kind": "anchor"
+          },
+          "to": {
+            "id": "sf_biz_7225_yerba",
+            "name": "Yerba Deli & Market",
+            "lat": 37.7824,
+            "lon": -122.4105,
+            "kind": "business"
+          },
+          "relationship": "DrawsFootfall",
+          "worker_share": 0.44
+        }
+      ],
+      "evidence": {
+        "real": ["High foot-traffic corner location", "Retail revenue reports show 55% residential customer mix"],
+        "modeled": ["Direct footfall proximity buffer"]
+      },
+      "tract": {
+        "tract_id": "06075017802",
+        "poverty_rate": 0.22,
+        "no_vehicle_rate": 0.41
+      },
+      "justification": "Exposed (62% of office footfall at risk) but not funded: business has a highly diversified walk-in pedestrian customer base from Market St transit hub and zero downstream dependents. Budget is more effectively deployed to upstream production hubs."
+    },
+    {
+      "business_id": "sf_biz_7113_larkin",
+      "name": "Larkin Event Hall",
+      "address": "333 Larkin St",
+      "lat": 37.7805,
+      "lon": -122.4165,
+      "naics4": "7113",
+      "industry_name": "Promoters of Performing Arts & Events",
+      "status": "exposed_not_funded",
+      "amount": 0,
+      "exposure": 0.38,
+      "hops_from_anchor": 2,
+      "role": "downstream_buyer",
+      "protects": [],
+      "paths": [
+        {
+          "from": {
+            "id": "sf_biz_7223_kearny",
+            "name": "Kearny Kitchen & Catering",
+            "lat": 37.7803,
+            "lon": -122.4082,
+            "kind": "business"
+          },
+          "to": {
+            "id": "sf_biz_7113_larkin",
+            "name": "Larkin Event Hall",
+            "lat": 37.7805,
+            "lon": -122.4165,
+            "kind": "business"
+          },
+          "relationship": "Supplies",
+          "intensity": 0.22
+        }
+      ],
+      "evidence": {
+        "real": ["Non-profit cultural venue charter", "City civic grant recipient 2025"],
+        "modeled": ["Vendor service replacement index"]
+      },
+      "tract": {
+        "tract_id": "06075017601",
+        "poverty_rate": 0.27,
+        "no_vehicle_rate": 0.50
+      },
+      "justification": "Exposed (38% indirect catering supply disruption), but not funded: event bookings occur on advance contracts with alternative caterers easily contracted within 1.5 miles. Upstream funding to Kearny Kitchen already insulates this venue."
+    },
+    {
+      "business_id": "sf_biz_8123_golden_gate_linen",
+      "name": "Golden Gate Commercial Laundry",
+      "address": "180 7th St",
+      "lat": 37.7788,
+      "lon": -122.4102,
+      "naics4": "8123",
+      "industry_name": "Drycleaning and Laundry Services",
+      "status": "exposed_not_funded",
+      "amount": 0,
+      "exposure": 0.28,
+      "hops_from_anchor": 2,
+      "role": "upstream_supplier",
+      "protects": [
+        {
+          "business_id": "sf_biz_7223_kearny",
+          "name": "Kearny Kitchen & Catering",
+          "hops": 1,
+          "intensity": 0.05
+        }
+      ],
+      "paths": [
+        {
+          "from": {
+            "id": "sf_biz_8123_golden_gate_linen",
+            "name": "Golden Gate Commercial Laundry",
+            "lat": 37.7788,
+            "lon": -122.4102,
+            "kind": "business"
+          },
+          "to": {
+            "id": "sf_biz_7223_kearny",
+            "name": "Kearny Kitchen & Catering",
+            "lat": 37.7803,
+            "lon": -122.4082,
+            "kind": "business"
+          },
+          "relationship": "Supplies",
+          "intensity": 0.05
+        }
+      ],
+      "evidence": {
+        "real": ["Industrial laundering equipment asset base"],
+        "modeled": ["Commercial linen supply coefficient (5%)"]
+      },
+      "tract": {
+        "tract_id": "06075017802",
+        "poverty_rate": 0.22,
+        "no_vehicle_rate": 0.41
+      },
+      "justification": "Exposed (28% commercial laundry loss), but not funded: holds broader hotel and medical linen accounts across downtown SF; localized impact falls below resilience intervention threshold."
+    },
+    {
+      "business_id": "sf_biz_5418_soma_print",
+      "name": "SoMa Print & Graphics",
+      "address": "995 Howard St",
+      "lat": 37.7812,
+      "lon": -122.4058,
+      "naics4": "5418",
+      "industry_name": "Advertising, PR & Related Services",
+      "status": "exposed_not_funded",
+      "amount": 0,
+      "exposure": 0.34,
+      "hops_from_anchor": 1,
+      "role": "anchor_direct",
+      "protects": [],
+      "paths": [
+        {
+          "from": {
+            "id": "060750178021003",
+            "name": "Office Anchor (1,400 Jobs)",
+            "lat": 37.7818,
+            "lon": -122.4112,
+            "kind": "anchor"
+          },
+          "to": {
+            "id": "sf_biz_5418_soma_print",
+            "name": "SoMa Print & Graphics",
+            "lat": 37.7812,
+            "lon": -122.4058,
+            "kind": "business"
+          },
+          "relationship": "DrawsFootfall",
+          "worker_share": 0.22
+        }
+      ],
+      "evidence": {
+        "real": ["Commercial press machinery leasing record"],
+        "modeled": ["Corporate printing service demand"]
+      },
+      "tract": {
+        "tract_id": "06075017802",
+        "poverty_rate": 0.21,
+        "no_vehicle_rate": 0.39
+      },
+      "justification": "Exposed (34% print order loss from closing office), but not funded: print orders are non-perishable with 60-day backlog and online customer acquisition across the broader Bay Area."
+    },
+    {
+      "business_id": "sf_biz_8129_mint_parking",
+      "name": "Mint Plaza Parking",
+      "address": "48 Mint Plaza",
+      "lat": 37.7828,
+      "lon": -122.4072,
+      "naics4": "8129",
+      "industry_name": "Parking Lots and Garages",
+      "status": "unaffected",
+      "amount": 0,
+      "exposure": 0.04,
+      "hops_from_anchor": 0,
+      "role": "retail_leaf",
+      "protects": [],
+      "paths": [],
+      "evidence": {
+        "real": ["Municipal parking license on file"],
+        "modeled": ["Transient commuter vehicular parking model"]
+      },
+      "tract": {
+        "tract_id": "06075017802",
+        "poverty_rate": 0.20,
+        "no_vehicle_rate": 0.38
+      },
+      "justification": "Unaffected: garage customer base is predominantly tied to Federal Building visitors, Westfield shoppers, and judicial center staff; zero supply-chain link to corridor retail."
+    },
+    {
+      "business_id": "sf_biz_4441_market_hardware",
+      "name": "Market St Hardware & Tool",
+      "address": "1025 Market St",
+      "lat": 37.7808,
+      "lon": -122.4115,
+      "naics4": "4441",
+      "industry_name": "Building Material & Hardware Supplies",
+      "status": "unaffected",
+      "amount": 0,
+      "exposure": 0.02,
+      "hops_from_anchor": 0,
+      "role": "independent",
+      "protects": [],
+      "paths": [],
+      "evidence": {
+        "real": ["Retail merchant permits 1998-present"],
+        "modeled": ["Zero workplace footfall dependency"]
+      },
+      "tract": {
+        "tract_id": "06075017802",
+        "poverty_rate": 0.22,
+        "no_vehicle_rate": 0.41
+      },
+      "justification": "Unaffected: residential property managers and trade contractors represent 96% of sales volume; immune to office worker midday footfall fluctuations."
+    },
+    {
+      "business_id": "sf_biz_4451_mid_market_bodega",
+      "name": "Mid-Market Bodega",
+      "address": "1150 Market St",
+      "lat": 37.7799,
+      "lon": -122.4132,
+      "naics4": "4451",
+      "industry_name": "Grocery and Convenience Stores",
+      "status": "unaffected",
+      "amount": 0,
+      "exposure": 0.05,
+      "hops_from_anchor": 0,
+      "role": "retail_leaf",
+      "protects": [],
+      "paths": [],
+      "evidence": {
+        "real": ["EBT / WIC certified neighborhood merchant"],
+        "modeled": ["Local resident grocery expenditure"]
+      },
+      "tract": {
+        "tract_id": "06075017802",
+        "poverty_rate": 0.25,
+        "no_vehicle_rate": 0.48
+      },
+      "justification": "Unaffected: sustained by dense SRO and residential tenant base purchasing household staples; zero exposure to corporate office closures."
+    },
+    {
+      "business_id": "sf_biz_4531_civic_florist",
+      "name": "Civic Center Florist",
+      "address": "1210 Market St",
+      "lat": 37.7785,
+      "lon": -122.415,
+      "naics4": "4531",
+      "industry_name": "Florists",
+      "status": "unaffected",
+      "amount": 0,
+      "exposure": 0.03,
+      "hops_from_anchor": 0,
+      "role": "retail_leaf",
+      "protects": [],
+      "paths": [],
+      "evidence": {
+        "real": ["City Hall wedding and event vendor roster"],
+        "modeled": ["Walkway transit footfall model"]
+      },
+      "tract": {
+        "tract_id": "06075017601",
+        "poverty_rate": 0.24,
+        "no_vehicle_rate": 0.46
+      },
+      "justification": "Unaffected: primary order volume generated by City Hall civil ceremonies and pre-ordered event arrangements beyond the anchor perimeter."
+    }
+  ],
+  "runner_up": {
+    "business_id": "sf_biz_7225_yerba",
+    "name": "Yerba Deli & Market",
+    "amount_proposed": 10000,
+    "why_not": "Yerba Deli absorbed 62% footfall loss, but possesses high foot-traffic retail substitution and zero downstream commercial dependents. Allocating the marginal $10k to Bayside Roasters instead protects both Sixth St Cafe and secondary food suppliers through multi-hop resilience."
+  },
+  "sensitivity": {
+    "top_pick_stable_at_0.5x": true,
+    "top_pick_stable_at_2x": false,
+    "notes": "At 0.5x grant effect, Bayside Roasters remains the invariant #1 priority due to its dual-buyer graph multiplier. At 2.0x, high acute retail distress shifts Sixth St Cafe to equal standing, prompting an 8% reallocation."
+  },
+  "equity_audit": {
+    "restaurant_share_funded": 0.5,
+    "restaurant_share_corridor": 0.32,
+    "high_poverty_tract_share_funded": 0.75,
+    "high_poverty_tract_share_corridor": 0.44
+  },
+  "memo_markdown": "# GRANT ALLOCATION MEMORANDUM\n\n**TO:** City Economic Development & Small Business Commission  \n**FROM:** Community Resilience Allocation Agent (ADK v2.4 + Gemini 2.5 Flash)  \n**DATE:** October 27, 2026  \n**SCENARIO:** Closure of Mid-Market Tech & Civic Office Center (Block 060750178021003, 1,400 Workplace Jobs)  \n**TOTAL APPROPRIATION:** $50,000.00  \n\n---\n\n### 1. Executive Recommendation\nWe recommend deploying the $50,000 relief allocation across four interconnected commercial entities along the **Central Market** corridor to prevent a multi-hop economic cascade:\n\n1. **Bayside Roasters** (NAICS 3119 - Coffee & Beverage Mfg): **$14,000**\n2. **Kearny Kitchen & Catering** (NAICS 7223 - Food Service Commissary): **$13,000**\n3. **Mission Grains & Bakery** (NAICS 3118 - Commercial Bakery): **$12,000**\n4. **Sixth St Cafe** (NAICS 7225 - Food & Eatery): **$11,000**\n\n**Total Capital Committed:** $50,000.00 (100% Budget Utilization)\n\n---\n\n### 2. Multi-Hop Network Rationale (The Upstream Lever)\nConventional relief algorithms rank businesses purely by immediate footfall distress, which would recommend funding frontline lunch delis exclusively. However, our BigQuery Property Graph traversal demonstrates that **$39,000 (78%)** of the recommended capital must be deployed **two hops upstream** to manufacturers and commercial commissaries.\n\n- **Bayside Roasters** is located 4 blocks away from the closing employer block, yet supplies 14% of the input inventory for *Sixth St Cafe* and 9% for *Yerba Deli*. If Bayside Roasters folds under buyer demand contraction, secondary cafes face fatal inventory price spikes.\n- **Kearny Kitchen & Catering** directly sustains weekend civic events at *Larkin Event Hall*. A breakdown at Kearny cancels community bookings across the neighborhood.\n\n---\n\n### 3. Justification for Unfunded Exposed Entities\n- **Yerba Deli & Market** was exposed to a 62% footfall drop, yet is **not recommended** for funding. Analysis reveals Yerba possesses significant pedestrian walk-in substitution from the Market St transit station and has zero downstream commercial dependents.\n- **Larkin Event Hall** is sheltered by the upstream intervention at Kearny Kitchen, eliminating duplicate public subsidies.\n\n---\n\n### 4. Equity & Demographic Audit\n- **75% of funded capital** flows into census tracts with poverty rates exceeding 23% (Tracts `06075017802` and `06075017601`), compared to the corridor baseline of 44%.\n- Zero-vehicle household transit dependency across funded entity zones averages **47.3%**, ensuring job preservation benefits non-car commuting local residents.\n\n---\n\n### 5. Sensitivity & Stability Assessment\n- Under a conservative **0.5× grant-effect assumption**, the top pick (*Bayside Roasters*) remains **100% stable**.\n- Under an aggressive **2.0× grant-effect assumption**, direct retail vulnerability increases, recommending a potential $2,500 shift toward *Sixth St Cafe*.\n\n*Signed,*\n**Automated Grant Decision Support System**  \n*San Francisco Office of Economic & Workforce Development*"
+}
