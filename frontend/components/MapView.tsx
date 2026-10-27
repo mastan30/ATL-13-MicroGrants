@@ -64,11 +64,10 @@ export const MapView: React.FC<MapViewProps> = ({
             attributionControl: true,
           });
 
-          // Use dark CartoDB tiles to match modern UI
-          L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-            maxZoom: 19,
-            subdomains: 'abcd',
+          // Use dark Esri canvas tiles (no API key required, crisp dark basemap)
+          L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+            attribution: '&copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
+            maxZoom: 17,
           }).addTo(map);
 
           L.control.zoom({ position: 'bottomright' }).addTo(map);
@@ -78,11 +77,17 @@ export const MapView: React.FC<MapViewProps> = ({
 
         const map = leafletMapRef.current;
 
+        // Auto-fit bounds to enclose anchor and all businesses with padding
+        const bounds = L.latLngBounds([[anchor.lat, anchor.lon]]);
+        businesses.forEach((b) => bounds.extend([b.lat, b.lon]));
+        map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+
         // Force size recalculation
         map.invalidateSize();
         setTimeout(() => {
           if (isMounted && leafletMapRef.current) {
             leafletMapRef.current.invalidateSize();
+            leafletMapRef.current.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
           }
         }, 150);
 
