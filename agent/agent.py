@@ -123,7 +123,7 @@ Format your response as a formal "Emergency Grant Recommendation Memo".
 """
 
 # Define the ADK Agent object so `adk web` can find it
-agent = Agent(
+root_agent = Agent(
     name="anchor_agent",
     model="gemini-3.1-pro-preview",
     instruction=system_instruction,
