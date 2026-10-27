@@ -48,9 +48,13 @@ async def analyze_anchor_fallout(employer_name: str) -> str:
     """
     
     # THE GQL QUERY
+    # Due to BigQuery Property Graph quirks, asking for an exposed property (like anchor.name) 
+    # that doesn't exist on all node types in a MATCH clause causes a crash.
+    # To fix this, we traverse the graph generically, and filter the result.
+    
     gql_query = f"""
     GRAPH a4i_econ.LocalEconomy
-    MATCH p = (anchor:Employer WHERE anchor.name = '{employer_name}')
+    MATCH p = (anchor:Employer)
               -[:DrawsFootfall]->(retail:Business)
               <-[supply_edge:Supplies]-(supplier:Business)
     RETURN 
@@ -67,13 +71,18 @@ async def analyze_anchor_fallout(employer_name: str) -> str:
                 await session.initialize()
                 
                 print(f"Executing Graph Query via MCP for {employer_name}...")
-                result = await session.call_tool("bigquery", "query", {"query": gql_query})
+                result = await session.call_tool("execute_query", {"query": gql_query})
                 
                 if not result.content:
                     return "No results found or error connecting to BigQuery."
-                    
+                
                 try:
-                    raw_data = json.loads(result.content[0].text)
+                    # The MCP execute_query tool returns JSON with a 'query_results' key
+                    response_json = json.loads(result.content[0].text)
+                    if "error" in response_json:
+                        return f"Query execution failed: {response_json['error']}"
+                    
+                    raw_data = response_json.get("query_results", [])
                 except:
                     return f"Raw query returned, needs parsing: {result.content[0].text[:100]}..."
                 
