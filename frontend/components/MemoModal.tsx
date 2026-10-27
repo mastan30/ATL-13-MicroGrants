@@ -1,28 +1,44 @@
-'use strict';
 'use client';
 
-import React, { useState } from 'react';
-import { X, Download, Copy, Check, FileText } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { X, Download, Copy, Check } from 'lucide-react';
+import { Markdown } from '@/lib/markdown';
+import { DecisionsSource } from '@/types/scenario';
 
 interface MemoModalProps {
   isOpen: boolean;
   onClose: () => void;
   memoMarkdown: string;
+  source: DecisionsSource;
 }
 
-export const MemoModal: React.FC<MemoModalProps> = ({
-  isOpen,
-  onClose,
-  memoMarkdown,
-}) => {
+export const MemoModal: React.FC<MemoModalProps> = ({ isOpen, onClose, memoMarkdown, source }) => {
   const [copied, setCopied] = useState(false);
+  const closeRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    closeRef.current?.focus({ focusVisible: false } as FocusOptions);
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = overflow;
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(memoMarkdown);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(memoMarkdown);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard can be blocked (permissions, insecure context); the download still works.
+    }
   };
 
   const handleDownload = () => {
@@ -30,67 +46,59 @@ export const MemoModal: React.FC<MemoModalProps> = ({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `grant-allocation-memo-${new Date().toISOString().slice(0, 10)}.md`;
-    document.body.appendChild(a);
+    a.download = `grant-memo-${new Date().toISOString().slice(0, 10)}.md`;
     a.click();
-    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
   return (
-    <div
-      style={{ zIndex: 99999 }}
-      className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn"
-    >
-      <div className="relative w-full max-w-3xl max-h-[85vh] bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden text-slate-100">
-        {/* Modal Header */}
-        <div className="p-4 px-6 border-b border-slate-800 flex items-center justify-between bg-slate-950/70">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-indigo-600/20 text-indigo-400 border border-indigo-500/30">
-              <FileText className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="font-bold text-base text-white">Grant Allocation Memorandum</h2>
-              <p className="text-xs text-slate-400">Formal Small Business Commission Decision Brief</p>
-            </div>
-          </div>
+    <div className="fixed inset-0 z-[1200] flex items-end justify-center sm:items-center sm:p-6">
+      <div className="absolute inset-0 animate-fade-in bg-ink/30" onClick={onClose} aria-hidden />
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleCopy}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition"
-            >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              {copied ? 'Copied' : 'Copy'}
-            </button>
-            <button
-              onClick={handleDownload}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white shadow-md shadow-blue-600/20 transition"
-            >
-              <Download className="w-3.5 h-3.5" />
-              Download .md
-            </button>
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
-              aria-label="Close memo modal"
-            >
-              <X className="w-5 h-5" />
-            </button>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="memo-title"
+        className="relative flex max-h-[92dvh] w-full max-w-3xl animate-pop-in flex-col overflow-hidden rounded-t-2xl bg-surface shadow-2xl ring-1 ring-line sm:max-h-[88dvh] sm:rounded-2xl"
+      >
+        <header className="flex items-center gap-3 border-b border-line px-5 py-3.5 sm:px-6">
+          <div className="min-w-0 flex-1">
+            <h2 id="memo-title" className="text-[15px] font-semibold text-ink">Grant memo</h2>
+            <p className="text-xs text-ink-3">
+              {source === 'agent' ? 'Written by the agent for this scenario' : 'Sample memo · not generated from BigQuery'}
+            </p>
           </div>
-        </div>
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-medium text-ink-2 ring-1 ring-line transition-colors hover:bg-subtle hover:text-ink"
+          >
+            {copied ? <Check className="size-3.5 text-funded" /> : <Copy className="size-3.5" />}
+            <span className="hidden sm:inline">{copied ? 'Copied' : 'Copy'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleDownload}
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand px-3 text-[13px] font-medium text-white transition-colors hover:bg-brand-hover"
+          >
+            <Download className="size-3.5" />
+            <span className="hidden sm:inline">Download</span>
+          </button>
+          <button
+            ref={closeRef}
+            type="button"
+            onClick={onClose}
+            aria-label="Close memo"
+            className="-mr-1.5 rounded-lg p-1.5 text-ink-3 transition-colors hover:bg-subtle hover:text-ink focus-visible:outline-2 focus-visible:outline-brand"
+          >
+            <X className="size-5" />
+          </button>
+        </header>
 
-        {/* Modal Body: Memo Document */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-950/40 text-slate-200 text-sm leading-relaxed font-sans font-light">
-          <div className="prose prose-invert max-w-none prose-headings:text-white prose-a:text-blue-400 whitespace-pre-wrap">
-            {memoMarkdown}
-          </div>
-        </div>
-
-        {/* Modal Footer */}
-        <div className="p-3 px-6 border-t border-slate-800 bg-slate-950/80 flex items-center justify-between text-xs text-slate-400">
-          <span>Generated by Deterministic Allocation Tools + Gemini Decision Engine</span>
-          <span>San Francisco Office of Economic & Workforce Development</span>
+        <div className="overflow-y-auto overscroll-contain bg-subtle px-3 py-3 sm:px-6 sm:py-6">
+          <article className="rounded-xl bg-surface px-5 py-6 text-[14px] leading-relaxed text-ink-2 ring-1 ring-line sm:px-10 sm:py-10">
+            <Markdown source={memoMarkdown} />
+          </article>
         </div>
       </div>
     </div>

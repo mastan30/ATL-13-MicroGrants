@@ -1,117 +1,77 @@
-'use strict';
 'use client';
 
-import React from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import { BusinessDecision } from '@/types/scenario';
-import { CheckCircle2, AlertTriangle, Building2 } from 'lucide-react';
+import { ROLE_LABEL, formatPct, formatUSD } from '@/lib/format';
+import { StatusBadge } from '@/components/ui';
 
 interface HoverCardProps {
   business: BusinessDecision | null;
   position: { x: number; y: number } | null;
 }
 
+const OFFSET = 16;
+const MARGIN = 12;
+
 export const HoverCard: React.FC<HoverCardProps> = ({ business, position }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [style, setStyle] = useState<React.CSSProperties>({ opacity: 0 });
+
+  // Measure the rendered card and flip it to whichever side of the cursor fits the viewport.
+  useLayoutEffect(() => {
+    if (!position || !ref.current) return;
+    const { width, height } = ref.current.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let left = position.x + OFFSET;
+    if (left + width + MARGIN > vw) left = position.x - OFFSET - width;
+    let top = position.y + OFFSET;
+    if (top + height + MARGIN > vh) top = position.y - OFFSET - height;
+    setStyle({
+      left: Math.max(MARGIN, Math.min(left, vw - width - MARGIN)),
+      top: Math.max(MARGIN, Math.min(top, vh - height - MARGIN)),
+      opacity: 1,
+    });
+  }, [position, business]);
+
   if (!business || !position) return null;
-
-  const isFunded = business.status === 'funded';
-  const isExposed = business.status === 'exposed_not_funded';
-
-  const badgeColor = isFunded
-    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
-    : isExposed
-    ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
-    : 'bg-slate-700/40 text-slate-400 border-slate-600/40';
-
-  const statusLabel = isFunded
-    ? 'FUNDED'
-    : isExposed
-    ? 'EXPOSED (NOT FUNDED)'
-    : 'UNAFFECTED';
-
-  // Client window boundary calculations
-  const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
-  const windowHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
-
-  // Position card offset from cursor, keeping inside viewport
-  let left = position.x + 20;
-  if (left + 360 > windowWidth) {
-    left = position.x - 380;
-  }
-  left = Math.max(16, left);
-
-  let top = position.y - 20;
-  if (top + 280 > windowHeight) {
-    top = windowHeight - 300;
-  }
-  top = Math.max(16, top);
 
   return (
     <div
-      style={{
-        left: `${left}px`,
-        top: `${top}px`,
-        zIndex: 9999,
-      }}
-      className="fixed pointer-events-none w-88 rounded-xl border border-slate-700/80 bg-slate-900/98 p-4 shadow-2xl backdrop-blur-md transition-opacity duration-150 text-slate-100 ring-1 ring-white/10"
+      ref={ref}
+      role="tooltip"
+      style={style}
+      className="pointer-events-none fixed z-[1000] w-[300px] rounded-xl bg-surface p-4 shadow-[0_12px_32px_rgb(16_41_47/0.16)] ring-1 ring-line"
     >
-      {/* Header */}
-      <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-2.5">
-        <div>
-          <div className="flex items-center gap-2">
-            <h4 className="font-bold text-base text-white leading-tight">{business.name}</h4>
-          </div>
-          <p className="text-xs text-slate-400 mt-0.5">{business.address} · NAICS {business.naics4}</p>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="truncate text-sm font-semibold text-ink">{business.name}</div>
+          <div className="mt-0.5 truncate text-xs text-ink-3">{business.address}</div>
         </div>
-        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border ${badgeColor}`}>
-          {isFunded && <CheckCircle2 className="w-3 h-3 mr-1 text-emerald-400" />}
-          {isExposed && <AlertTriangle className="w-3 h-3 mr-1 text-amber-400" />}
-          {statusLabel}
-        </span>
+        <StatusBadge status={business.status} />
       </div>
 
-      {/* Metrics Row */}
-      <div className="grid grid-cols-2 gap-2 my-2.5">
-        <div className="bg-slate-800/60 rounded-lg p-2 border border-slate-700/40">
-          <span className="text-[10px] uppercase tracking-wider text-slate-400 font-medium">Grant Allocation</span>
-          <p className="text-lg font-black text-emerald-400 leading-tight mt-0.5">
-            {business.amount > 0 ? `$${business.amount.toLocaleString()}` : '$0'}
-          </p>
+      <dl className="mt-3 grid grid-cols-2 gap-px overflow-hidden rounded-lg bg-line ring-1 ring-line">
+        <div className="bg-surface px-3 py-2">
+          <dt className="text-[11px] text-ink-3">Grant</dt>
+          <dd className="tabular text-base font-semibold text-ink">{business.amount > 0 ? formatUSD(business.amount) : '—'}</dd>
         </div>
-        <div className="bg-slate-800/60 rounded-lg p-2 border border-slate-700/40">
-          <span className="text-[10px] uppercase tracking-wider text-slate-400 font-medium">Exposure Score</span>
-          <div className="flex items-center justify-between mt-0.5">
-            <p className="text-lg font-black text-amber-400 leading-tight">
-              {(business.exposure * 100).toFixed(0)}%
-            </p>
-            <span className="text-[10px] text-slate-400 bg-slate-700/50 px-1.5 py-0.5 rounded">
-              {business.hops_from_anchor === 0 ? 'Leaf' : `${business.hops_from_anchor} hop${business.hops_from_anchor > 1 ? 's' : ''}`}
+        <div className="bg-surface px-3 py-2">
+          <dt className="text-[11px] text-ink-3">Exposure</dt>
+          <dd className="tabular text-base font-semibold text-ink">
+            {formatPct(business.exposure)}
+            <span className="ml-1 text-xs font-normal text-ink-3">
+              · {business.hops_from_anchor} {business.hops_from_anchor === 1 ? 'hop' : 'hops'}
             </span>
-          </div>
+          </dd>
         </div>
-      </div>
+      </dl>
 
-      {/* Downstream Protections */}
-      {business.protects.length > 0 && (
-        <div className="mb-2 bg-indigo-950/40 border border-indigo-800/40 rounded-lg p-2">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-indigo-300 flex items-center gap-1">
-            <Building2 className="w-3 h-3" /> Protects Downstream ({business.protects.length}):
-          </span>
-          <p className="text-xs text-indigo-200 mt-0.5 font-medium">
-            {business.protects.map((p) => `${p.name} (${(p.intensity * 100).toFixed(0)}% supply)`).join(', ')}
-          </p>
-        </div>
-      )}
+      <p className="mt-3 line-clamp-3 text-xs leading-relaxed text-ink-2">{business.justification}</p>
 
-      {/* Instant Justification */}
-      <div className="mt-2 text-xs text-slate-300 leading-relaxed bg-slate-800/40 p-2 rounded border border-slate-700/30">
-        <p className="line-clamp-3">
-          <strong className="text-slate-200">Decision: </strong>
-          {business.justification}
-        </p>
-      </div>
-
-      <div className="mt-2 text-[10px] text-slate-400 font-medium text-right">
-        Click marker to open full drilldown drawer →
+      <div className="mt-3 flex items-center justify-between text-[11px] text-ink-3">
+        <span>{ROLE_LABEL[business.role]}</span>
+        <span>Click for the full case</span>
       </div>
     </div>
   );

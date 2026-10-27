@@ -3,7 +3,7 @@ import mockData from '@/data/mock_decisions.json';
 import { DecisionsResponse, BusinessDecision } from '@/types/scenario';
 
 // In-memory cache of the last valid decision response
-let cachedResponse: DecisionsResponse = mockData as unknown as DecisionsResponse;
+let cachedResponse: DecisionsResponse = { ...(mockData as unknown as DecisionsResponse), source: 'sample' };
 
 export async function GET() {
   return NextResponse.json(cachedResponse);
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
         clearTimeout(timeoutId);
 
         if (res.ok) {
-          const liveData = (await res.json()) as DecisionsResponse;
+          const liveData = { ...((await res.json()) as DecisionsResponse), source: 'agent' as const };
           cachedResponse = liveData;
           return NextResponse.json(liveData);
         }
@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
 
     // Deterministic recalculation over Central Market dataset based on budget & effect parameters
     const base = JSON.parse(JSON.stringify(mockData)) as DecisionsResponse;
+    base.source = 'sample';
     base.scenario.budget = budget;
     base.scenario.grant_effect = grantEffect;
     base.scenario.block_id = blockId;

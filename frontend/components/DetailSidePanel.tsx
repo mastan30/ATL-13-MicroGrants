@@ -1,18 +1,10 @@
-'use strict';
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+import { X, MapPin, ArrowRight } from 'lucide-react';
 import { BusinessDecision, RunnerUp } from '@/types/scenario';
-import {
-  X,
-  ShieldCheck,
-  GitFork,
-  ArrowRight,
-  Database,
-  Building,
-  MapPin,
-  HelpCircle,
-} from 'lucide-react';
+import { ROLE_LABEL, formatPct, formatUSD } from '@/lib/format';
+import { SectionLabel, StatusBadge, cx } from '@/components/ui';
 
 interface DetailSidePanelProps {
   business: BusinessDecision | null;
@@ -20,249 +12,186 @@ interface DetailSidePanelProps {
   onClose: () => void;
 }
 
-export const DetailSidePanel: React.FC<DetailSidePanelProps> = ({
-  business,
-  runnerUp,
-  onClose,
-}) => {
+export const DetailSidePanel: React.FC<DetailSidePanelProps> = ({ business, runnerUp, onClose }) => {
+  const closeRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!business) return;
+    closeRef.current?.focus({ focusVisible: false } as FocusOptions);
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [business, onClose]);
+
   if (!business) return null;
 
-  const isFunded = business.status === 'funded';
-  const isExposed = business.status === 'exposed_not_funded';
+  const isRunnerUp = runnerUp?.business_id === business.business_id;
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        style={{ zIndex: 9997 }}
-        className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs transition-opacity"
-        onClick={onClose}
-      />
+    <div className="fixed inset-0 z-[1100]">
+      <div className="absolute inset-0 animate-fade-in bg-ink/25" onClick={onClose} aria-hidden />
 
-      {/* Drawer */}
-      <div
-        style={{ zIndex: 9998 }}
-        className="fixed inset-y-0 right-0 z-[9998] w-full sm:w-[480px] bg-slate-900/98 border-l border-slate-700/80 shadow-2xl backdrop-blur-xl flex flex-col text-slate-100 overflow-hidden transition-transform duration-300 ease-in-out"
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="detail-title"
+        className="absolute inset-y-0 right-0 flex w-full animate-drawer-in flex-col bg-surface shadow-2xl ring-1 ring-line sm:w-[460px]"
       >
-      {/* Header */}
-      <div className="p-5 border-b border-slate-800 bg-slate-950/60 flex items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span
-              className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase border ${
-                isFunded
-                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
-                  : isExposed
-                  ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
-                  : 'bg-slate-700/40 text-slate-400 border-slate-600/40'
-              }`}
-            >
-              {business.status.replace(/_/g, ' ')}
-            </span>
-            <span className="text-xs text-slate-400 font-mono">NAICS {business.naics4}</span>
+        <header className="flex items-start gap-4 border-b border-line px-6 py-5">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusBadge status={business.status} />
+              <span className="text-xs text-ink-3">{ROLE_LABEL[business.role]}</span>
+            </div>
+            <h2 id="detail-title" className="mt-2 text-xl font-semibold tracking-tight text-ink">
+              {business.name}
+            </h2>
+            <p className="mt-1 flex items-start gap-1.5 text-[13px] text-ink-2">
+              <MapPin className="mt-0.5 size-3.5 shrink-0 text-ink-3" />
+              <span>
+                {business.address} · {business.industry_name} · <span className="whitespace-nowrap">NAICS {business.naics4}</span>
+              </span>
+            </p>
           </div>
-          <h2 className="text-xl font-bold text-white mt-1 leading-snug">{business.name}</h2>
-          <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
-            <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-            {business.address} · {business.industry_name}
-          </p>
-        </div>
-        <button
-          onClick={onClose}
-          className="p-2 rounded-lg bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition"
-          aria-label="Close detail panel"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
+          <button
+            ref={closeRef}
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="-mr-2 rounded-lg p-2 text-ink-3 transition-colors hover:bg-subtle hover:text-ink focus-visible:outline-2 focus-visible:outline-brand"
+          >
+            <X className="size-5" />
+          </button>
+        </header>
 
-      {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-5">
-        {/* Metric Cards */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/50">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
-              Grant Award
-            </span>
-            <span className="text-2xl font-black text-emerald-400 mt-1 block">
-              {business.amount > 0 ? `$${business.amount.toLocaleString()}` : '$0'}
-            </span>
-            <span className="text-[11px] text-slate-400 mt-0.5 block">
-              {isFunded ? 'Resilience Stabilization' : 'No Allocation'}
-            </span>
-          </div>
+        <div className="flex-1 space-y-6 overflow-y-auto overscroll-contain px-6 py-5">
+          <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-line ring-1 ring-line">
+            <Metric label="Grant" value={business.amount > 0 ? formatUSD(business.amount) : '—'} />
+            <Metric
+              label="Exposure"
+              value={formatPct(business.exposure)}
+              sub={`${business.hops_from_anchor} ${business.hops_from_anchor === 1 ? 'hop' : 'hops'} from the closure`}
+            />
+          </dl>
 
-          <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/50">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
-              Exposure Risk
-            </span>
-            <span className="text-2xl font-black text-amber-400 mt-1 block">
-              {(business.exposure * 100).toFixed(0)}%
-            </span>
-            <span className="text-[11px] text-slate-400 mt-0.5 block">
-              {business.hops_from_anchor} hop(s) from anchor
-            </span>
-          </div>
-        </div>
+          <Section title="Why">
+            <p className="text-sm leading-relaxed text-ink-2">{business.justification}</p>
+          </Section>
 
-        {/* Role & Protection Summary */}
-        <div className="p-3.5 rounded-xl bg-indigo-950/30 border border-indigo-900/50">
-          <div className="flex items-center justify-between text-xs mb-1.5">
-            <span className="font-semibold text-indigo-300 uppercase tracking-wider text-[10px]">
-              Network Role
-            </span>
-            <span className="bg-indigo-900/60 text-indigo-200 px-2 py-0.5 rounded text-[11px] font-mono">
-              {business.role.replace(/_/g, ' ')}
-            </span>
-          </div>
-
-          {business.protects.length > 0 ? (
-            <div className="mt-2 text-xs">
-              <span className="text-slate-400 block mb-1 font-medium">Downstream Dependents Protected:</span>
-              <ul className="space-y-1">
+          <Section title={`What this grant protects${business.protects.length ? ` · ${business.protects.length}` : ''}`}>
+            {business.protects.length ? (
+              <ul className="divide-y divide-line rounded-xl ring-1 ring-line">
                 {business.protects.map((dep) => (
-                  <li
-                    key={dep.business_id}
-                    className="flex items-center justify-between bg-slate-900/60 px-2.5 py-1.5 rounded border border-indigo-900/30"
-                  >
-                    <span className="text-white font-medium">{dep.name}</span>
-                    <span className="text-emerald-400 font-mono text-[11px]">
-                      {(dep.intensity * 100).toFixed(0)}% supply link
+                  <li key={dep.business_id} className="flex items-center justify-between gap-3 px-3.5 py-2.5 text-[13px]">
+                    <span className="min-w-0 truncate font-medium text-ink">{dep.name}</span>
+                    <span className="tabular shrink-0 text-xs text-ink-3">
+                      {dep.hops} {dep.hops === 1 ? 'hop' : 'hops'} · {formatPct(dep.intensity)} of supply
                     </span>
                   </li>
                 ))}
               </ul>
+            ) : (
+              <p className="text-[13px] text-ink-3">No other business in the corridor depends on this one for supply.</p>
+            )}
+          </Section>
+
+          {business.paths.length > 0 && (
+            <Section title={`Graph paths · ${business.paths.length}`}>
+              <ol className="space-y-2">
+                {business.paths.map((p, idx) => {
+                  const isFootfall = p.relationship === 'DrawsFootfall';
+                  const share = isFootfall ? p.worker_share ?? 0 : p.intensity ?? 0;
+                  return (
+                    <li key={idx} className="rounded-xl px-3.5 py-2.5 ring-1 ring-line">
+                      <div className="flex items-center justify-between gap-2 text-[11px]">
+                        <span className="flex items-center gap-1.5">
+                          <code className={cx('font-mono font-medium', isFootfall ? 'text-anchor' : 'text-brand')}>
+                            {isFootfall ? 'DrawsFootfall' : 'Supplies'}
+                          </code>
+                          {!isFootfall && <span className="text-ink-3">· walked backward</span>}
+                        </span>
+                        <span className="tabular text-ink-3">
+                          {formatPct(share)} {isFootfall ? 'of workers' : 'supply intensity'}
+                        </span>
+                      </div>
+                      <div className="mt-1.5 flex items-center gap-2 text-[13px] text-ink">
+                        <span className="min-w-0 truncate">{p.from.name}</span>
+                        <ArrowRight className="size-3.5 shrink-0 text-ink-3" />
+                        <span className="min-w-0 truncate font-medium">{p.to.name}</span>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+            </Section>
+          )}
+
+          <Section title="Evidence">
+            <div className="space-y-3">
+              <EvidenceList tone="real" items={business.evidence.real} />
+              <EvidenceList tone="modeled" items={business.evidence.modeled} />
             </div>
-          ) : (
-            <p className="text-xs text-slate-400 mt-1">
-              Direct storefront consumer endpoint. No downstream commercial businesses depend on this entity for supply.
-            </p>
+          </Section>
+
+          <Section title={`Neighborhood${business.tract.tract_id ? ` · tract ${business.tract.tract_id}` : ''}`}>
+            <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-line ring-1 ring-line">
+              <Metric label="Poverty rate" value={formatPct(business.tract.poverty_rate)} small />
+              <Metric label="Households without a car" value={formatPct(business.tract.no_vehicle_rate)} small />
+            </dl>
+          </Section>
+
+          {runnerUp && (business.status === 'funded' || isRunnerUp) && (
+            <Section title={isRunnerUp ? 'This is the runner-up' : 'Why not the runner-up'}>
+              <div className="rounded-xl bg-subtle p-4 ring-1 ring-line">
+                <div className="flex items-baseline justify-between gap-3 text-[13px]">
+                  <span className="font-medium text-ink">{runnerUp.name}</span>
+                  <span className="tabular shrink-0 text-xs text-ink-3">would have received {formatUSD(runnerUp.amount_proposed)}</span>
+                </div>
+                <p className="mt-2 text-[13px] leading-relaxed text-ink-2">{runnerUp.why_not}</p>
+              </div>
+            </Section>
           )}
         </div>
-
-        {/* Full Justification */}
-        <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/40">
-          <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            Decision Justification
-          </h3>
-          <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-sans">
-            {business.justification}
-          </p>
-        </div>
-
-        {/* Multi-Hop Traversal Paths */}
-        {business.paths.length > 0 && (
-          <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/40">
-            <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-              <GitFork className="w-4 h-4 text-cyan-400" />
-              GQL Graph Traversal Paths ({business.paths.length})
-            </h3>
-            <div className="space-y-2.5">
-              {business.paths.map((p, idx) => (
-                <div
-                  key={idx}
-                  className="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800 text-xs flex flex-col gap-1.5"
-                >
-                  <div className="flex items-center justify-between text-[11px] text-slate-400">
-                    <span className="font-semibold text-cyan-300">
-                      Edge {idx + 1}: -[:{p.relationship}]-&gt;
-                    </span>
-                    <span className="font-mono text-slate-400">
-                      {p.relationship === 'DrawsFootfall'
-                        ? `${((p.worker_share || 0) * 100).toFixed(0)}% worker share`
-                        : `${((p.intensity || 0) * 100).toFixed(0)}% supply intensity`}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-slate-200">
-                    <span className="truncate font-medium">{p.from.name}</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                    <span className="truncate font-medium text-emerald-300">{p.to.name}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Evidence: Real vs Modeled */}
-        <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/40 space-y-3">
-          <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-            <Database className="w-4 h-4 text-purple-400" />
-            Evidence Attribution (Audit Rigor)
-          </h3>
-
-          <div className="space-y-2 text-xs">
-            <div>
-              <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider">
-                ✓ Verified Ground Truth (Real)
-              </span>
-              <ul className="mt-1 space-y-1">
-                {business.evidence.real.map((ev, i) => (
-                  <li key={i} className="text-slate-300 bg-emerald-950/20 px-2.5 py-1 rounded border border-emerald-900/30">
-                    {ev}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <span className="text-[10px] uppercase font-bold text-amber-400 tracking-wider">
-                ~ Modeled Coefficients (Simulated)
-              </span>
-              <ul className="mt-1 space-y-1">
-                {business.evidence.modeled.map((ev, i) => (
-                  <li key={i} className="text-slate-300 bg-amber-950/20 px-2.5 py-1 rounded border border-amber-900/30">
-                    {ev}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* Census Tract Demographics */}
-        <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/40">
-          <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-            <Building className="w-4 h-4 text-blue-400" />
-            Census Tract Demographics
-          </h3>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="bg-slate-900/60 p-2.5 rounded border border-slate-800">
-              <span className="text-slate-400 block text-[10px] uppercase">Poverty Rate</span>
-              <span className="text-base font-bold text-white mt-0.5 block">
-                {(business.tract.poverty_rate * 100).toFixed(0)}%
-              </span>
-              <span className="text-[10px] text-slate-500">Above corridor avg</span>
-            </div>
-            <div className="bg-slate-900/60 p-2.5 rounded border border-slate-800">
-              <span className="text-slate-400 block text-[10px] uppercase">Transit Dependency</span>
-              <span className="text-base font-bold text-white mt-0.5 block">
-                {(business.tract.no_vehicle_rate * 100).toFixed(0)}%
-              </span>
-              <span className="text-[10px] text-slate-500">Zero-vehicle HHs</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Runner-Up Comparison */}
-        {runnerUp && (
-          <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800">
-            <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-              <HelpCircle className="w-4 h-4 text-amber-400" />
-              Counterfactual Audit vs. Runner-Up
-            </h3>
-            <p className="text-xs text-slate-400 mb-2">
-              Comparison against <strong>{runnerUp.name}</strong> ($
-              {runnerUp.amount_proposed.toLocaleString()} marginal allocation):
-            </p>
-            <p className="text-xs text-slate-300 leading-relaxed bg-slate-900 p-2.5 rounded border border-slate-800">
-              {runnerUp.why_not}
-            </p>
-          </div>
-        )}
-      </div>
+      </aside>
     </div>
-    </>
   );
 };
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section>
+      <SectionLabel className="mb-2.5">{title}</SectionLabel>
+      {children}
+    </section>
+  );
+}
+
+function Metric({ label, value, sub, small }: { label: string; value: string; sub?: string; small?: boolean }) {
+  return (
+    <div className="bg-surface px-4 py-3">
+      <dt className="text-xs text-ink-3">{label}</dt>
+      <dd className={cx('tabular mt-0.5 font-semibold tracking-tight text-ink', small ? 'text-lg' : 'text-2xl')}>{value}</dd>
+      {sub && <dd className="mt-0.5 text-xs text-ink-3">{sub}</dd>}
+    </div>
+  );
+}
+
+function EvidenceList({ tone, items }: { tone: 'real' | 'modeled'; items: string[] }) {
+  if (!items.length) return null;
+  const real = tone === 'real';
+  return (
+    <div>
+      <div className={cx('mb-1.5 text-xs font-medium', real ? 'text-funded' : 'text-exposed')}>
+        {real ? 'Measured' : 'Modeled'}
+      </div>
+      <ul className="space-y-1.5">
+        {items.map((item, i) => (
+          <li key={i} className="flex gap-2 text-[13px] leading-snug text-ink-2">
+            <span className={cx('mt-1.5 size-1.5 shrink-0 rounded-full', real ? 'bg-funded' : 'bg-exposed-dot')} />
+            {item}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}

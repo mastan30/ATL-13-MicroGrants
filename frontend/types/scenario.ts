@@ -92,7 +92,11 @@ export interface EquityAudit {
   high_poverty_tract_share_corridor: number;
 }
 
+/** Where a decisions payload came from: the deployed agent, or the bundled sample file. */
+export type DecisionsSource = 'agent' | 'sample';
+
 export interface DecisionsResponse {
+  source?: DecisionsSource;
   scenario: ScenarioMeta;
   anchor: AnchorPoint;
   businesses: BusinessDecision[];

@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import "leaflet/dist/leaflet.css";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,8 +14,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Micro-Grants Decision Support | Community Economic Resilience (A4I 2026)",
-  description: "Decision support dashboard for small business economic resilience micro-grants in Central Market SF",
+  title: "Micro-Grants Decision Desk",
+  description:
+    "Anchor-closure decision support for small-business micro-grants in Central Market, San Francisco",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#f4f6f6",
 };
 
 export default function RootLayout({
@@ -23,19 +29,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <head>
-        <link
-          rel="stylesheet"
-          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-          crossOrigin=""
-        />
-      </head>
-      <body className="min-h-full flex flex-col bg-slate-950 text-slate-100">{children}</body>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className="min-h-dvh bg-canvas text-ink">{children}</body>
     </html>
   );
 }

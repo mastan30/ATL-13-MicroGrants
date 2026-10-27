@@ -1,332 +1,266 @@
-'use strict';
 'use client';
 
-import React, { useEffect, useRef } from 'react';
-import type { Map, Marker, Polyline, CircleMarker, LeafletMouseEvent } from 'leaflet';
-import { BusinessDecision, AnchorPoint, PathSegment } from '@/types/scenario';
+import React, { useEffect, useRef, useState } from 'react';
+import type { CircleMarker, LayerGroup, Map as LeafletMap } from 'leaflet';
+import { AnchorPoint, BusinessDecision } from '@/types/scenario';
+import { formatInt } from '@/lib/format';
+
+type Leaflet = typeof import('leaflet');
 
 interface MapViewProps {
   anchor: AnchorPoint;
   businesses: BusinessDecision[];
-  activeBusiness: BusinessDecision | null;
-  selectedBusiness: BusinessDecision | null;
+  /** Business whose cascade is drawn: the hovered one, else the selected one. */
+  highlightId: string | null;
+  selectedId: string | null;
   onHoverBusiness: (biz: BusinessDecision | null, pos: { x: number; y: number } | null) => void;
   onSelectBusiness: (biz: BusinessDecision) => void;
+}
+
+const COLORS = {
+  funded: '#1f6f6b',
+  exposed: '#d98c1c',
+  idle: '#9aa8ab',
+  footfall: '#c2364b',
+  supply: '#12343b',
+};
+
+function markerStyle(biz: BusinessDecision, state: 'normal' | 'focus' | 'dim') {
+  const base =
+    biz.status === 'funded'
+      ? { radius: Math.max(9, Math.min(17, 6 + biz.amount / 1500)), color: '#ffffff', fillColor: COLORS.funded, fillOpacity: 0.95, weight: 2 }
+      : biz.status === 'exposed_not_funded'
+        ? { radius: 8, color: '#ffffff', fillColor: COLORS.exposed, fillOpacity: 0.95, weight: 2 }
+        : { radius: 5, color: '#ffffff', fillColor: COLORS.idle, fillOpacity: 0.9, weight: 1.5 };
+  if (state === 'focus') return { ...base, radius: base.radius + 3, weight: 3, color: COLORS.supply };
+  if (state === 'dim') return { ...base, fillOpacity: 0.35, opacity: 0.5 };
+  return { ...base, opacity: 1 };
 }
 
 export const MapView: React.FC<MapViewProps> = ({
   anchor,
   businesses,
-  activeBusiness,
-  selectedBusiness,
+  highlightId,
+  selectedId,
   onHoverBusiness,
   onSelectBusiness,
 }) => {
-  const mapContainerRef = useRef<HTMLDivElement>(null);
-  const leafletMapRef = useRef<Map | null>(null);
-  const layersRef = useRef<{
-    markers: CircleMarker[];
-    cascadeLines: (Polyline | Marker)[];
-    anchorMarker: Marker | null;
-  }>({
-    markers: [],
-    cascadeLines: [],
-    anchorMarker: null,
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<LeafletMap | null>(null);
+  const leafletRef = useRef<Leaflet | null>(null);
+  const markersRef = useRef<Map<string, CircleMarker>>(new Map());
+  const baseLayerRef = useRef<LayerGroup | null>(null);
+  const pathLayerRef = useRef<LayerGroup | null>(null);
+  const [ready, setReady] = useState(false);
+  const [legendOpen, setLegendOpen] = useState(false);
+
+  // Callbacks live in refs so marker handlers stay current without rebuilding the map.
+  const hoverRef = useRef(onHoverBusiness);
+  const selectRef = useRef(onSelectBusiness);
+  useEffect(() => {
+    hoverRef.current = onHoverBusiness;
+    selectRef.current = onSelectBusiness;
   });
 
-  // Focus business is either hovered or clicked
-  const highlightedBiz = activeBusiness || selectedBusiness;
-
-  /* -------------------------------------------------------------------------- */
-  /* LEAFLET INITIALIZATION & UPDATES                                          */
-  /* -------------------------------------------------------------------------- */
+  // 1. Create the map once.
   useEffect(() => {
-    if (typeof window === 'undefined' || !mapContainerRef.current) return;
+    let cancelled = false;
+    let observer: ResizeObserver | null = null;
+    const markers = markersRef.current;
 
-    let isMounted = true;
+    import('leaflet').then((mod) => {
+      const L = mod.default ?? mod;
+      if (cancelled || !containerRef.current || mapRef.current) return;
 
-    async function initLeaflet() {
-      try {
-        const L = (await import('leaflet')).default;
+      const map = L.map(containerRef.current, {
+        zoomControl: false,
+        attributionControl: true,
+        scrollWheelZoom: false,
+      });
+      L.tileLayer(
+        'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+        { attribution: 'Tiles &copy; Esri', maxZoom: 16 }
+      ).addTo(map);
+      // Street names sit above the base tiles but below the markers.
+      const labels = map.createPane('labels');
+      labels.style.zIndex = '350';
+      labels.style.pointerEvents = 'none';
+      L.tileLayer(
+        'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}',
+        { maxZoom: 16, pane: 'labels' }
+      ).addTo(map);
+      L.control.zoom({ position: 'bottomright' }).addTo(map);
+      map.on('click', () => map.scrollWheelZoom.enable());
+      map.on('mouseout', () => map.scrollWheelZoom.disable());
 
-        if (!isMounted || !mapContainerRef.current) return;
+      baseLayerRef.current = L.layerGroup().addTo(map);
+      pathLayerRef.current = L.layerGroup().addTo(map);
+      leafletRef.current = L;
+      mapRef.current = map;
 
-        // Clean stale leaflet ID if element was re-used
-        if ((mapContainerRef.current as HTMLDivElement & { _leaflet_id?: string })._leaflet_id && !leafletMapRef.current) {
-          delete (mapContainerRef.current as HTMLDivElement & { _leaflet_id?: string })._leaflet_id;
-        }
-
-        if (!leafletMapRef.current) {
-          // Create Leaflet instance centered at Central Market SF
-          const map = L.map(mapContainerRef.current, {
-            center: [anchor.lat, anchor.lon],
-            zoom: 16,
-            zoomControl: false,
-            attributionControl: true,
-          });
-
-          // Use dark Esri canvas tiles (no API key required, crisp dark basemap)
-          L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-            attribution: '&copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
-            maxZoom: 17,
-          }).addTo(map);
-
-          L.control.zoom({ position: 'bottomright' }).addTo(map);
-
-          leafletMapRef.current = map;
-        }
-
-        const map = leafletMapRef.current;
-
-        // Auto-fit bounds to enclose anchor and all businesses with padding
-        const bounds = L.latLngBounds([[anchor.lat, anchor.lon]]);
-        businesses.forEach((b) => bounds.extend([b.lat, b.lon]));
-        map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
-
-        // Force size recalculation
-        map.invalidateSize();
-        setTimeout(() => {
-          if (isMounted && leafletMapRef.current) {
-            leafletMapRef.current.invalidateSize();
-            leafletMapRef.current.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
-          }
-        }, 150);
-
-        // Clean existing markers
-        layersRef.current.markers.forEach((m) => map.removeLayer(m));
-        layersRef.current.cascadeLines.forEach((l) => map.removeLayer(l));
-        if (layersRef.current.anchorMarker) {
-          map.removeLayer(layersRef.current.anchorMarker);
-        }
-        layersRef.current.markers = [];
-        layersRef.current.cascadeLines = [];
-
-        // 1. Draw Anchor Point
-        const anchorIcon = L.divIcon({
-          className: 'custom-anchor-marker',
-          html: `
-            <div style="position: relative; display: flex; align-items: center; justify-content: center; transform: translate(-50%, -50%); cursor: pointer;">
-              <div style="position: absolute; width: 56px; height: 56px; border-radius: 50%; background: rgba(244, 63, 94, 0.25); animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
-              <div style="position: relative; display: flex; align-items: center; gap: 6px; background: #e11d48; color: #ffffff; font-weight: 800; font-size: 11px; padding: 6px 12px; border-radius: 9999px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); border: 2px solid #ffffff;">
-                <span style="font-size: 14px;">🏢</span>
-                <span>1,400 Jobs</span>
-              </div>
-            </div>
-          `,
-          iconSize: [0, 0],
-        });
-
-        const anchorMarker = L.marker([anchor.lat, anchor.lon], { icon: anchorIcon })
-          .addTo(map)
-          .bindTooltip(`<b>${anchor.name}</b><br/>Closing Workplace Anchor (1,400 Jobs)`, {
-            direction: 'top',
-            offset: [0, -18],
-            className: 'custom-leaflet-tooltip',
-          });
-
-        layersRef.current.anchorMarker = anchorMarker;
-
-        // 2. Draw Business Markers
-        businesses.forEach((biz) => {
-          const isFunded = biz.status === 'funded';
-          const isExposed = biz.status === 'exposed_not_funded';
-
-          // Size circles by status and funding amount
-          let radius = 8;
-          let color = '#64748b'; // slate grey for unaffected
-          let fillColor = '#475569';
-          let fillOpacity = 0.7;
-          let weight = 2;
-
-          if (isFunded) {
-            // strong emerald color, sized by amount ($8k -> 14, $14k -> 22)
-            radius = Math.max(13, Math.min(24, 11 + (biz.amount / 1000)));
-            color = '#10b981'; // emerald-500
-            fillColor = '#059669';
-            fillOpacity = 0.9;
-            weight = 3;
-          } else if (isExposed) {
-            // muted amber color
-            radius = 11;
-            color = '#f59e0b'; // amber-500
-            fillColor = '#d97706';
-            fillOpacity = 0.65;
-            weight = 2.5;
-          }
-
-          const circle = L.circleMarker([biz.lat, biz.lon], {
-            radius,
-            color,
-            fillColor,
-            fillOpacity,
-            weight,
-          }).addTo(map);
-
-          // Hover events for React floating card with exact screen coordinates
-          circle.on('mouseover', (e: LeafletMouseEvent) => {
-            const clientX = e.originalEvent ? (e.originalEvent as MouseEvent).clientX : (e.containerPoint?.x ?? 0);
-            const clientY = e.originalEvent ? (e.originalEvent as MouseEvent).clientY : (e.containerPoint?.y ?? 0);
-            onHoverBusiness(biz, { x: clientX, y: clientY });
-          });
-
-          circle.on('mousemove', (e: LeafletMouseEvent) => {
-            const clientX = e.originalEvent ? (e.originalEvent as MouseEvent).clientX : (e.containerPoint?.x ?? 0);
-            const clientY = e.originalEvent ? (e.originalEvent as MouseEvent).clientY : (e.containerPoint?.y ?? 0);
-            onHoverBusiness(biz, { x: clientX, y: clientY });
-          });
-
-          circle.on('mouseout', () => {
-            onHoverBusiness(null, null);
-          });
-
-          circle.on('click', () => {
-            onSelectBusiness(biz);
-          });
-
-          layersRef.current.markers.push(circle);
-        });
-      } catch (err) {
-        console.error('Failed to render Leaflet map:', err);
-      }
-    }
-
-    initLeaflet();
+      observer = new ResizeObserver(() => map.invalidateSize());
+      observer.observe(containerRef.current);
+      setReady(true);
+    });
 
     return () => {
-      isMounted = false;
-      if (leafletMapRef.current) {
-        leafletMapRef.current.remove();
-        leafletMapRef.current = null;
-      }
+      cancelled = true;
+      observer?.disconnect();
+      mapRef.current?.remove();
+      mapRef.current = null;
+      markers.clear();
+      setReady(false);
     };
-  }, [anchor, businesses, onHoverBusiness, onSelectBusiness]);
+  }, []);
 
-  /* -------------------------------------------------------------------------- */
-  /* PAN MAP TO SELECTED BUSINESS                                               */
-  /* -------------------------------------------------------------------------- */
+  // 2. Draw the anchor and business markers whenever the data changes.
   useEffect(() => {
-    if (!leafletMapRef.current || !selectedBusiness) return;
-    leafletMapRef.current.panTo([selectedBusiness.lat, selectedBusiness.lon], {
-      animate: true,
-      duration: 0.8,
-    });
-  }, [selectedBusiness]);
+    const L = leafletRef.current;
+    const map = mapRef.current;
+    const layer = baseLayerRef.current;
+    if (!ready || !L || !map || !layer) return;
 
-  /* -------------------------------------------------------------------------- */
-  /* DRAW CASCADE LINES FOR HIGHLIGHTED BUSINESS                                */
-  /* -------------------------------------------------------------------------- */
+    layer.clearLayers();
+    markersRef.current.clear();
+
+    L.marker([anchor.lat, anchor.lon], {
+      icon: L.divIcon({
+        className: '',
+        iconSize: [0, 0],
+        html: `<div class="anchor-pin"><span class="anchor-pin__pulse"></span><span class="anchor-pin__label"><span class="anchor-pin__dot"></span>${formatInt(anchor.jobs)} jobs leaving</span></div>`,
+      }),
+      keyboard: false,
+      zIndexOffset: 1000,
+    })
+      .bindTooltip(`Closing employer · block ${anchor.block_id}`, { direction: 'top', offset: [0, -16], className: 'map-tooltip' })
+      .addTo(layer);
+
+    // Draw small markers first so funded circles sit on top.
+    const ordered = [...businesses].sort((a, b) => a.amount - b.amount || a.exposure - b.exposure);
+    for (const biz of ordered) {
+      const marker = L.circleMarker([biz.lat, biz.lon], { ...markerStyle(biz, 'normal'), bubblingMouseEvents: false });
+      const point = (e: { originalEvent?: MouseEvent }) =>
+        e.originalEvent ? { x: e.originalEvent.clientX, y: e.originalEvent.clientY } : null;
+      marker.on('mouseover', (e) => hoverRef.current(biz, point(e)));
+      marker.on('mousemove', (e) => hoverRef.current(biz, point(e)));
+      marker.on('mouseout', () => hoverRef.current(null, null));
+      marker.on('click', () => selectRef.current(biz));
+      marker.addTo(layer);
+      markersRef.current.set(biz.business_id, marker);
+    }
+
+    const bounds = L.latLngBounds([[anchor.lat, anchor.lon]]);
+    businesses.forEach((b) => bounds.extend([b.lat, b.lon]));
+    const pad = map.getSize().x < 640 ? 20 : 56;
+    map.fitBounds(bounds, { padding: [pad, pad], maxZoom: 16 });
+  }, [ready, anchor, businesses]);
+
+  // 3. Emphasize the focused business and draw its cascade paths.
+  const focusId = highlightId ?? selectedId;
   useEffect(() => {
-    if (!leafletMapRef.current) return;
+    const L = leafletRef.current;
+    const layer = pathLayerRef.current;
+    if (!ready || !L || !layer) return;
 
-    import('leaflet').then((L) => {
-      const map = leafletMapRef.current;
-      if (!map) return;
-
-      // Clear existing lines
-      layersRef.current.cascadeLines.forEach((l) => map.removeLayer(l));
-      layersRef.current.cascadeLines = [];
-
-      if (!highlightedBiz || !highlightedBiz.paths || highlightedBiz.paths.length === 0) {
-        return;
-      }
-
-      // Draw cascade polylines for the active business
-      highlightedBiz.paths.forEach((p: PathSegment) => {
-        const isFootfall = p.relationship === 'DrawsFootfall';
-
-        // Anchor -> Cafe (footfall, dashed cyan)
-        // Cafe <- Roaster (backward supply line, solid emerald)
-        const polyline = L.polyline(
-          [
-            [p.from.lat, p.from.lon],
-            [p.to.lat, p.to.lon],
-          ],
-          {
-            color: isFootfall ? '#38bdf8' : '#10b981',
-            weight: isFootfall ? 3.5 : 4.5,
-            opacity: 0.95,
-            dashArray: isFootfall ? '8, 8' : undefined,
-          }
-        ).addTo(map);
-
-        // Add middle arrow/indicator marker
-        const midLat = (p.from.lat + p.to.lat) / 2;
-        const midLon = (p.from.lon + p.to.lon) / 2;
-
-        const labelText = isFootfall
-          ? `Footfall: -[:DrawsFootfall]-> (${((p.worker_share || 0) * 100).toFixed(0)}%)`
-          : `Backward Supply: <-[:Supplies]- (${((p.intensity || 0) * 100).toFixed(0)}%)`;
-
-        const badge = L.marker([midLat, midLon], {
-          icon: L.divIcon({
-            className: 'cascade-edge-label',
-            html: `
-              <div style="background: ${isFootfall ? 'rgba(8, 47, 73, 0.95)' : 'rgba(6, 78, 59, 0.95)'}; color: ${isFootfall ? '#7dd3fc' : '#6ee7b7'}; border: 1px solid ${isFootfall ? '#0284c7' : '#059669'}; font-size: 10px; font-weight: 700; font-family: ui-monospace, monospace; padding: 2px 8px; border-radius: 6px; white-space: nowrap; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5); transform: translate(-50%, -50%);">
-                ${labelText}
-              </div>
-            `,
-            iconSize: [0, 0],
-          }),
-        }).addTo(map);
-
-        layersRef.current.cascadeLines.push(polyline, badge);
-      });
+    layer.clearLayers();
+    const focus = focusId ? businesses.find((b) => b.business_id === focusId) ?? null : null;
+    const related = new Set<string>();
+    focus?.paths.forEach((p) => {
+      related.add(p.from.id);
+      related.add(p.to.id);
     });
-  }, [highlightedBiz]);
+
+    for (const biz of businesses) {
+      const marker = markersRef.current.get(biz.business_id);
+      if (!marker) continue;
+      const state = !focus ? 'normal' : biz.business_id === focus.business_id ? 'focus' : related.has(biz.business_id) ? 'normal' : 'dim';
+      marker.setStyle(markerStyle(biz, state));
+      if (state === 'focus') marker.bringToFront();
+    }
+
+    focus?.paths.forEach((p) => {
+      const isFootfall = p.relationship === 'DrawsFootfall';
+      L.polyline(
+        [
+          [p.from.lat, p.from.lon],
+          [p.to.lat, p.to.lon],
+        ],
+        {
+          color: isFootfall ? COLORS.footfall : COLORS.supply,
+          weight: isFootfall ? 2.5 : 3,
+          opacity: 0.9,
+          dashArray: isFootfall ? '6 6' : undefined,
+          interactive: false,
+        }
+      ).addTo(layer);
+
+      const share = isFootfall ? p.worker_share ?? 0 : p.intensity ?? 0;
+      const label = isFootfall ? `footfall ${Math.round(share * 100)}%` : `supplies ${Math.round(share * 100)}%`;
+      L.marker([(p.from.lat + p.to.lat) / 2, (p.from.lon + p.to.lon) / 2], {
+        icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="edge-label">${label}</div>` }),
+        interactive: false,
+        keyboard: false,
+      }).addTo(layer);
+    });
+  }, [ready, focusId, businesses]);
+
+  // Keep the selected business in view.
+  useEffect(() => {
+    if (!ready || !selectedId) return;
+    const biz = businesses.find((b) => b.business_id === selectedId);
+    if (biz && mapRef.current && !mapRef.current.getBounds().pad(-0.15).contains([biz.lat, biz.lon])) {
+      mapRef.current.panTo([biz.lat, biz.lon], { animate: true, duration: 0.5 });
+    }
+  }, [ready, selectedId, businesses]);
 
   return (
-    <div
-      style={{ width: '100%', height: '620px', minHeight: '620px', position: 'relative' }}
-      className="w-full h-[620px] min-h-[620px] rounded-2xl overflow-hidden border border-slate-800 shadow-2xl bg-slate-950"
-    >
-      {/* Map DOM Element with explicit style */}
-      <div
-        ref={mapContainerRef}
-        style={{ width: '100%', height: '100%', minHeight: '620px', position: 'relative' }}
-        className="w-full h-full min-h-[620px]"
-      />
+    <div className="relative h-full w-full overflow-hidden bg-[#eef1f0]">
+      <div ref={containerRef} className="absolute inset-0" aria-label="Map of the closing employer and exposed businesses" />
 
-      {/* Map Legend Overlay */}
-      <div className="absolute bottom-5 left-5 z-[400] bg-slate-900/95 border border-slate-800 rounded-xl p-3.5 shadow-2xl backdrop-blur-md text-slate-200 text-xs pointer-events-auto">
-        <h5 className="font-bold text-[11px] uppercase tracking-wider text-slate-400 mb-2">
-          Map Legend · Central Market
-        </h5>
-        <div className="space-y-1.5 font-medium">
-          <div className="flex items-center gap-2">
-            <span className="w-3.5 h-3.5 rounded-full bg-rose-600 border border-white ring-2 ring-rose-500/30"></span>
-            <span>Anchor Block (1,400 Workers Closing)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 border border-emerald-300 ring-2 ring-emerald-500/40"></span>
-            <span>Funded (Sized by grant amount)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-amber-500 border border-amber-300"></span>
-            <span>Exposed, Not Funded (Muted)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
-            <span>Unaffected / Leaf node (Grey dot)</span>
-          </div>
-        </div>
+      {!ready && (
+        <div className="absolute inset-0 grid place-items-center text-sm text-ink-3">Loading map…</div>
+      )}
 
-        <div className="mt-2.5 pt-2 border-t border-slate-800 text-[10px] text-slate-400 space-y-1">
-          <div className="flex items-center gap-1.5">
-            <span className="w-4 h-0.5 border-t-2 border-dashed border-sky-400"></span>
-            <span>Footfall loss (Anchor → Store)</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-4 h-0.5 bg-emerald-400"></span>
-            <span>Backward supply line (Store ← Supplier)</span>
-          </div>
-        </div>
+      <div className="pointer-events-none absolute top-3 left-3 z-[500] hidden rounded-lg bg-surface/90 px-3 py-1.5 text-xs text-ink-2 shadow-sm ring-1 ring-line backdrop-blur sm:block">
+        Hover a business to trace its cascade · click for the full case
       </div>
 
-      {/* Platform & Source Badge */}
-      <div className="absolute top-4 right-4 z-[400] flex items-center gap-2 pointer-events-none">
-        <div className="bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-lg shadow-lg text-[11px] text-slate-300 flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span>BigQuery GQL Property Graph Live</span>
+      <div className="absolute bottom-3 left-3 z-[500] rounded-xl bg-surface/95 text-xs text-ink-2 shadow-sm ring-1 ring-line backdrop-blur">
+        {/* On phones the legend starts collapsed so it does not cover the markers. */}
+        <button
+          type="button"
+          onClick={() => setLegendOpen((o) => !o)}
+          aria-expanded={legendOpen}
+          className="flex items-center gap-2 px-3 py-2 font-medium text-ink sm:hidden"
+        >
+          <span className="flex -space-x-1">
+            <span className="size-2.5 rounded-full bg-anchor ring-2 ring-white" />
+            <span className="size-2.5 rounded-full bg-funded ring-2 ring-white" />
+            <span className="size-2.5 rounded-full bg-exposed-dot ring-2 ring-white" />
+          </span>
+          {legendOpen ? 'Hide legend' : 'Legend'}
+        </button>
+        <div className={legendOpen ? 'block px-3 pb-3 sm:p-3' : 'hidden sm:block sm:p-3'}>
+        <div className="grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1.5">
+          <span className="size-2.5 rounded-full bg-anchor ring-2 ring-white" />
+          <span>Closing employer</span>
+          <span className="size-3 rounded-full bg-funded ring-2 ring-white" />
+          <span>Funded · sized by grant</span>
+          <span className="size-2.5 rounded-full bg-exposed-dot ring-2 ring-white" />
+          <span>Exposed, not funded</span>
+          <span className="ml-0.5 size-1.5 rounded-full bg-idle" />
+          <span>Not affected</span>
+        </div>
+        <div className="mt-2.5 grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1.5 border-t border-line pt-2.5">
+          <svg width="18" height="4" aria-hidden className="text-anchor">
+            <line x1="0" y1="2" x2="18" y2="2" stroke="currentColor" strokeWidth="2" strokeDasharray="4 3" />
+          </svg>
+          <span>Footfall the closure removes</span>
+          <svg width="18" height="4" aria-hidden className="text-brand">
+            <line x1="0" y1="2" x2="18" y2="2" stroke="currentColor" strokeWidth="2.5" />
+          </svg>
+          <span>Supply link the harm travels back along</span>
+        </div>
         </div>
       </div>
     </div>

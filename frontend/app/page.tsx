@@ -1,69 +1,65 @@
-'use strict';
 'use client';
 
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { DecisionsResponse, BusinessDecision } from '@/types/scenario';
+import { FileText, Landmark } from 'lucide-react';
+import { BusinessDecision, DecisionsResponse } from '@/types/scenario';
 import initialMockData from '@/data/mock_decisions.json';
 import { ScenarioControls } from '@/components/ScenarioControls';
-import { SensitivityBanner } from '@/components/SensitivityBanner';
+import { StatTiles } from '@/components/StatTiles';
+import { DecisionList } from '@/components/DecisionList';
 import { HoverCard } from '@/components/HoverCard';
 import { DetailSidePanel } from '@/components/DetailSidePanel';
 import { MemoModal } from '@/components/MemoModal';
-import { AgentChatPanel } from '@/components/AgentChatPanel';
-import {
-  ShieldCheck,
-  Building2,
-  PieChart,
-  DollarSign,
-  TrendingUp,
-  Sparkles,
-} from 'lucide-react';
+import { AgentChatPanel, AgentStatus } from '@/components/AgentChatPanel';
+import { StatusDot, cx } from '@/components/ui';
 
-// Dynamic import for Leaflet / MapView to disable SSR
-const MapView = dynamic(
-  () => import('@/components/MapView').then((mod) => mod.MapView),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="w-full h-full min-h-[680px] rounded-2xl bg-slate-950 flex flex-col items-center justify-center border border-slate-800 text-slate-400">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-3"></div>
-        <p className="text-sm font-medium">Loading BigQuery Property Graph Map...</p>
-      </div>
-    ),
-  }
-);
+// Leaflet touches `window`, so the map only renders in the browser.
+const MapView = dynamic(() => import('@/components/MapView').then((mod) => mod.MapView), {
+  ssr: false,
+  loading: () => <div className="grid h-full place-items-center bg-[#eef1f0] text-sm text-ink-3">Loading map…</div>,
+});
+
+const INITIAL: DecisionsResponse = { ...(initialMockData as unknown as DecisionsResponse), source: 'sample' };
+
+type Tab = 'decisions' | 'agent';
 
 export default function MicroGrantsDashboard() {
-  const [data, setData] = useState<DecisionsResponse>(initialMockData as unknown as DecisionsResponse);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [data, setData] = useState<DecisionsResponse>(INITIAL);
+  const [lastRun, setLastRun] = useState({ budget: INITIAL.scenario.budget, effect: INITIAL.scenario.grant_effect });
+  const [isLoading, setIsLoading] = useState(false);
+  const [tab, setTab] = useState<Tab>('decisions');
+  const [agentStatus, setAgentStatus] = useState<AgentStatus>('connecting');
 
-  // Hover state (instantaneous, never triggers network)
-  const [hoveredBusiness, setHoveredBusiness] = useState<BusinessDecision | null>(null);
-  const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number } | null>(null);
+  const [hoverId, setHoverId] = useState<string | null>(null);
+  const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null);
+  const [selected, setSelected] = useState<BusinessDecision | null>(null);
+  const [isMemoOpen, setIsMemoOpen] = useState(false);
 
-  // Click selection state for full inspection side panel
-  const [selectedBusiness, setSelectedBusiness] = useState<BusinessDecision | null>(null);
+  const source = data.source ?? 'sample';
+  const hovered = hoverId ? data.businesses.find((b) => b.business_id === hoverId) ?? null : null;
+  const isDirty = data.scenario.budget !== lastRun.budget || Math.abs(data.scenario.grant_effect - lastRun.effect) > 0.001;
 
-  // Memo modal state
-  const [isMemoOpen, setIsMemoOpen] = useState<boolean>(false);
+  const handleMapHover = useCallback((biz: BusinessDecision | null, pos: { x: number; y: number } | null) => {
+    setHoverId(biz?.business_id ?? null);
+    setHoverPos(pos);
+  }, []);
 
-  // Scenario parameter changes
-  const handleBudgetChange = (budget: number) => {
-    setData((prev) => ({
-      ...prev,
-      scenario: { ...prev.scenario, budget },
-    }));
-  };
+  const handleListHover = useCallback((biz: BusinessDecision | null) => {
+    setHoverId(biz?.business_id ?? null);
+    setHoverPos(null);
+  }, []);
 
-  const handleGrantEffectChange = (effect: number) => {
-    setData((prev) => ({
-      ...prev,
-      scenario: { ...prev.scenario, grant_effect: effect },
-    }));
-  };
+  const handleSelect = useCallback((biz: BusinessDecision) => {
+    setHoverId(null);
+    setHoverPos(null);
+    setSelected(biz);
+  }, []);
 
-  const handleRerun = async () => {
+  const closeDetail = useCallback(() => setSelected(null), []);
+  const closeMemo = useCallback(() => setIsMemoOpen(false), []);
+
+  const runScenario = async () => {
     setIsLoading(true);
     try {
       const res = await fetch('/api/scenario', {
@@ -75,203 +71,183 @@ export default function MicroGrantsDashboard() {
           grant_effect: data.scenario.grant_effect,
         }),
       });
-
       if (res.ok) {
         const result = (await res.json()) as DecisionsResponse;
         setData(result);
-        if (selectedBusiness) {
-          const updated = result.businesses.find((b) => b.business_id === selectedBusiness.business_id);
-          if (updated) setSelectedBusiness(updated);
-        }
+        setLastRun({ budget: result.scenario.budget, effect: result.scenario.grant_effect });
+        setSelected((prev) => (prev ? result.businesses.find((b) => b.business_id === prev.business_id) ?? null : null));
       }
     } catch (e) {
-      console.error('Failed to rerun scenario:', e);
+      console.error('Failed to run scenario:', e);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const totalFunded = data.businesses
-    .filter((b) => b.status === 'funded')
-    .reduce((sum, b) => sum + b.amount, 0);
-
-  const fundedCount = data.businesses.filter((b) => b.status === 'funded').length;
-  const exposedCount = data.businesses.filter((b) => b.status === 'exposed_not_funded').length;
-
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-      {/* Top Navigation Bar */}
-      <header className="border-b border-slate-800/80 bg-slate-900/90 backdrop-blur-md sticky top-0 z-30 px-6 py-3 flex items-center justify-between shadow-lg">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-black text-white text-base shadow-lg shadow-blue-500/20">
-            A4I
+    <div className="min-h-dvh">
+      <header className="sticky top-0 z-[900] border-b border-line bg-surface/90 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-[1440px] items-center gap-3 px-4 sm:px-6">
+          <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand text-white">
+            <Landmark className="size-[18px]" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-bold text-base text-white tracking-tight">
-                Community Economic Resilience & Micro-Grants
-              </h1>
-              <span className="bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded uppercase flex items-center gap-1">
-                <Sparkles className="w-3 h-3" />
-                Live Agent
-              </span>
-            </div>
-            <p className="text-xs text-slate-400">
-              Corridor: <strong className="text-slate-300">Central Market, SF</strong> · Target Table:{' '}
-              <code className="text-blue-400 font-mono text-[11px]">
-                qwiklabs-gcp-04-e4952d3717e9.a4i_econ.businesses
-              </code>
-            </p>
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-[15px] font-semibold tracking-tight text-ink">Micro-Grants Decision Desk</h1>
+            <p className="truncate text-xs text-ink-3">Anchor-closure track · Central Market, San Francisco</p>
           </div>
-        </div>
 
-        <div className="flex items-center gap-3">
-          <div className="hidden md:flex items-center gap-2 text-xs text-slate-400 bg-slate-800/60 px-3 py-1.5 rounded-xl border border-slate-700/50">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>Anchor Agent GQL Graph Connected</span>
+          <div className="hidden items-center gap-2 md:flex">
+            <Pill
+              tone={source === 'agent' ? 'ok' : 'warn'}
+              title={
+                source === 'agent'
+                  ? 'Decisions come from the deployed agent'
+                  : 'Map and decisions come from the bundled sample file, not from BigQuery'
+              }
+            >
+              {source === 'agent' ? 'Live agent data' : 'Sample data'}
+            </Pill>
+            <Pill
+              tone={agentStatus === 'connected' ? 'ok' : agentStatus === 'connecting' ? 'busy' : 'off'}
+              pulse={agentStatus === 'connecting'}
+            >
+              {agentStatus === 'connected' ? 'Agent connected' : agentStatus === 'connecting' ? 'Connecting to agent' : 'Agent offline'}
+            </Pill>
           </div>
 
           <button
+            type="button"
             onClick={() => setIsMemoOpen(true)}
-            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-md shadow-blue-600/20 transition active:scale-95"
+            className="inline-flex h-9 shrink-0 items-center gap-2 rounded-lg bg-brand px-3.5 text-[13px] font-medium text-white transition-colors hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
-            <ShieldCheck className="w-4 h-4" />
-            Decision Memo
+            <FileText className="size-4" />
+            <span className="hidden sm:inline">Grant memo</span>
+            <span className="sm:hidden">Memo</span>
           </button>
         </div>
       </header>
 
-      {/* Main Container */}
-      <div className="flex-1 p-6 max-w-[1600px] w-full mx-auto flex flex-col gap-5">
-        {/* Scenario Controls Bar */}
+      <main className="mx-auto flex max-w-[1440px] flex-col gap-4 px-4 py-4 sm:gap-5 sm:px-6 sm:py-6">
+        {source === 'sample' && (
+          <div className="flex items-start gap-2.5 rounded-xl bg-exposed-soft px-4 py-2.5 text-[13px] text-exposed md:hidden">
+            <StatusDot tone="warn" />
+            <span className="-mt-1">Showing sample data, not results from BigQuery.</span>
+          </div>
+        )}
+
         <ScenarioControls
           scenario={data.scenario}
-          isLoading={isLoading}
-          onBudgetChange={handleBudgetChange}
-          onGrantEffectChange={handleGrantEffectChange}
-          onRerun={handleRerun}
-          onOpenMemo={() => setIsMemoOpen(true)}
-        />
-
-        {/* Sensitivity Banner */}
-        <SensitivityBanner
           sensitivity={data.sensitivity}
-          grantEffect={data.scenario.grant_effect}
+          isLoading={isLoading}
+          isDirty={isDirty}
+          onBudgetChange={(budget) => setData((prev) => ({ ...prev, scenario: { ...prev.scenario, budget } }))}
+          onGrantEffectChange={(grant_effect) => setData((prev) => ({ ...prev, scenario: { ...prev.scenario, grant_effect } }))}
+          onRun={runScenario}
         />
 
-        {/* Side-by-Side Split Workspace: Map on Left, Agent Chat on Right */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch h-[680px] min-h-[680px]">
-          {/* Left Column: Interactive Leaflet Property Graph Map (7 cols) */}
-          <div className="lg:col-span-7 xl:col-span-7 relative w-full h-[680px] min-h-[680px] rounded-2xl overflow-hidden shadow-2xl border border-slate-800">
+        <StatTiles data={data} />
+
+        <div className="grid gap-4 sm:gap-5 lg:grid-cols-[minmax(0,1fr)_400px]">
+          <section
+            aria-label="Corridor map"
+            className="h-[440px] overflow-hidden rounded-2xl bg-surface shadow-sm ring-1 ring-line sm:h-[520px] lg:h-[620px]"
+          >
             <MapView
               anchor={data.anchor}
               businesses={data.businesses}
-              activeBusiness={hoveredBusiness}
-              selectedBusiness={selectedBusiness}
-              onHoverBusiness={(biz, pos) => {
-                setHoveredBusiness(biz);
-                setHoverPosition(pos);
-              }}
-              onSelectBusiness={(biz) => setSelectedBusiness(biz)}
+              highlightId={hoverId}
+              selectedId={selected?.business_id ?? null}
+              onHoverBusiness={handleMapHover}
+              onSelectBusiness={handleSelect}
             />
-          </div>
+          </section>
 
-          {/* Right Column: Interactive Docked Agent Chat Panel (5 cols) */}
-          <div className="lg:col-span-5 xl:col-span-5 w-full h-[680px] min-h-[680px]">
-            <AgentChatPanel
-              businesses={data.businesses}
-              onSelectBusiness={(biz) => setSelectedBusiness(biz)}
-              selectedBusiness={selectedBusiness}
-            />
-          </div>
+          <section className="flex h-[560px] flex-col overflow-hidden rounded-2xl bg-surface shadow-sm ring-1 ring-line lg:h-[620px]">
+            <div role="tablist" aria-label="Side panel" className="flex shrink-0 gap-1 border-b border-line px-3 pt-2">
+              <TabButton active={tab === 'decisions'} onClick={() => setTab('decisions')} id="decisions">
+                Decisions
+                <span className="tabular ml-1.5 rounded-full bg-idle-soft px-1.5 text-[11px] text-ink-2">{data.businesses.length}</span>
+              </TabButton>
+              <TabButton active={tab === 'agent'} onClick={() => setTab('agent')} id="agent">
+                Ask the agent
+                <span className="ml-1.5">
+                  <StatusDot tone={agentStatus === 'connected' ? 'ok' : agentStatus === 'connecting' ? 'busy' : 'off'} />
+                </span>
+              </TabButton>
+            </div>
+
+            {/* Both panels stay mounted so the agent session survives tab switches. */}
+            <div role="tabpanel" id="panel-decisions" aria-labelledby="tab-decisions" className={cx('min-h-0 flex-1', tab !== 'decisions' && 'hidden')}>
+              <DecisionList
+                businesses={data.businesses}
+                highlightId={hoverId}
+                selectedId={selected?.business_id ?? null}
+                onHover={handleListHover}
+                onSelect={handleSelect}
+              />
+            </div>
+            <div role="tabpanel" id="panel-agent" aria-labelledby="tab-agent" className={cx('min-h-0 flex-1', tab !== 'agent' && 'hidden')}>
+              <AgentChatPanel businesses={data.businesses} onSelectBusiness={handleSelect} onStatusChange={setAgentStatus} />
+            </div>
+          </section>
         </div>
 
-        {/* Global Floating Overlays */}
-        <HoverCard business={hoveredBusiness} position={hoverPosition} />
-        <DetailSidePanel
-          business={selectedBusiness}
-          runnerUp={data.runner_up}
-          onClose={() => setSelectedBusiness(null)}
-        />
+        <footer className="pb-2 text-center text-xs text-ink-3">
+          Businesses, loans, job counts and demographics are measured. Which business buys from which, and which shops a block&apos;s workers use, is modeled.
+        </footer>
+      </main>
 
-        {/* Bottom Equity Audit & Performance Metrics Bar */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-1">
-          <div className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-4 shadow-md flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-              <DollarSign className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
-                Total Committed
-              </span>
-              <p className="text-xl font-black text-white mt-0.5">
-                ${totalFunded.toLocaleString()}
-              </p>
-              <span className="text-[11px] text-emerald-400 font-medium">
-                {fundedCount} of {data.businesses.length} businesses funded
-              </span>
-            </div>
-          </div>
+      <HoverCard business={hoverPos ? hovered : null} position={hoverPos} />
+      <DetailSidePanel business={selected} runnerUp={data.runner_up} onClose={closeDetail} />
+      <MemoModal isOpen={isMemoOpen} onClose={closeMemo} memoMarkdown={data.memo_markdown} source={source} />
+    </div>
+  );
+}
 
-          <div className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-4 shadow-md flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/30">
-              <TrendingUp className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
-                Exposed Cascade
-              </span>
-              <p className="text-xl font-black text-white mt-0.5">
-                {exposedCount} Unfunded
-              </p>
-              <span className="text-[11px] text-amber-400 font-medium">
-                Full justification on map hover
-              </span>
-            </div>
-          </div>
+function Pill({
+  tone,
+  pulse,
+  title,
+  children,
+}: {
+  tone: 'ok' | 'warn' | 'off' | 'busy';
+  pulse?: boolean;
+  title?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <span title={title} className="inline-flex h-8 items-center gap-2 rounded-full px-3 text-xs font-medium text-ink-2 ring-1 ring-line">
+      <StatusDot tone={tone} pulse={pulse} />
+      {children}
+    </span>
+  );
+}
 
-          <div className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-4 shadow-md flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/30">
-              <PieChart className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
-                High-Poverty Equity Share
-              </span>
-              <p className="text-xl font-black text-white mt-0.5">
-                {(data.equity_audit.high_poverty_tract_share_funded * 100).toFixed(0)}%
-              </p>
-              <span className="text-[11px] text-slate-400">
-                vs {(data.equity_audit.high_poverty_tract_share_corridor * 100).toFixed(0)}% corridor baseline
-              </span>
-            </div>
-          </div>
-
-          <div className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-4 shadow-md flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/30">
-              <Building2 className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
-                Restaurant Sector Share
-              </span>
-              <p className="text-xl font-black text-white mt-0.5">
-                {(data.equity_audit.restaurant_share_funded * 100).toFixed(0)}%
-              </p>
-              <span className="text-[11px] text-slate-400">
-                vs {(data.equity_audit.restaurant_share_corridor * 100).toFixed(0)}% corridor baseline
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Grant Decision Memorandum Modal */}
-      <MemoModal
-        isOpen={isMemoOpen}
-        onClose={() => setIsMemoOpen(false)}
-        memoMarkdown={data.memo_markdown}
-      />
-    </main>
+function TabButton({
+  active,
+  onClick,
+  id,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  id: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      id={`tab-${id}`}
+      aria-selected={active}
+      aria-controls={`panel-${id}`}
+      onClick={onClick}
+      className={cx(
+        '-mb-px inline-flex h-10 items-center border-b-2 px-3 text-[13px] font-medium transition-colors',
+        active ? 'border-brand text-ink' : 'border-transparent text-ink-3 hover:text-ink'
+      )}
+    >
+      {children}
+    </button>
   );
 }
