@@ -4,7 +4,7 @@ import json
 import pandas as pd
 from mcp.client.stdio import stdio_client, StdioServerParameters
 from mcp.client.session import ClientSession
-from google_adk import Agent, tool
+from google.adk import Agent, tool
 
 # ---------------------------------------------------------------------------
 # MCP CLIENT SETUP
