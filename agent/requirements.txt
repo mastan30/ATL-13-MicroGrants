@@ -1,0 +1,9 @@
+# ADK and AI dependencies
+google-genai>=0.2.0
+
+# MCP (Model Context Protocol) client dependencies
+# We use the official MCP Python SDK to connect to the BigQuery MCP server
+mcp>=1.0.0
+
+# Data manipulation for our custom business logic
+pandas>=2.0.0
