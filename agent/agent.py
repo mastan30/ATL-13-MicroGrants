@@ -11,22 +11,47 @@ from google.genai import types
 # MCP CLIENT SETUP
 # ---------------------------------------------------------------------------
 async def setup_mcp_client():
-    # Load config using absolute path relative to this file
-    config_path = os.path.join(os.path.dirname(__file__), "mcp_config.json")
+    # Gracefully search for mcp_config.json in candidate locations
+    possible_paths = [
+        os.path.join(os.path.dirname(__file__), "mcp_config.json"),
+        os.path.join(os.getcwd(), "mcp_config.json"),
+        "/app/agents/agent/mcp_config.json",
+        "/app/mcp_config.json",
+    ]
+    config_path = None
+    for p in possible_paths:
+        if os.path.exists(p):
+            config_path = p
+            break
+    if not config_path:
+        raise FileNotFoundError(f"Could not find mcp_config.json in any expected location: {possible_paths}")
+
     with open(config_path, "r") as f:
         config = json.load(f)
         
     bq_config = config["mcpServers"]["bigquery"]
     
-    # Map the env variables required by the npm package properly
     env = os.environ.copy()
+
+    # Ensure BIGQUERY_KEY_FILE is set
+    sa_path = os.path.join(os.path.dirname(__file__), "service-account.json")
+    if not os.path.exists(sa_path):
+        sa_content = os.environ.get("SERVICE_ACCOUNT_JSON")
+        if sa_content:
+            sa_path = "/tmp/service-account.json"
+            with open(sa_path, "w") as f:
+                f.write(sa_content)
+
+    if os.path.exists(sa_path):
+        env["BIGQUERY_KEY_FILE"] = sa_path
+        env["GOOGLE_APPLICATION_CREDENTIALS"] = sa_path
+
     if "env" in bq_config:
-        if "GOOGLE_APPLICATION_CREDENTIALS" in bq_config["env"]:
-            env["GOOGLE_APPLICATION_CREDENTIALS"] = bq_config["env"]["GOOGLE_APPLICATION_CREDENTIALS"]
-        if "BIGQUERY_PROJECT" in bq_config["env"]:
-            env["BIGQUERY_PROJECT"] = bq_config["env"]["BIGQUERY_PROJECT"]
-        if "PROJECT_ID" in bq_config["env"]:
-            env["PROJECT_ID"] = bq_config["env"]["PROJECT_ID"]
+        for k, v in bq_config["env"].items():
+            if isinstance(v, str) and v.startswith("${") and v.endswith("}"):
+                env[k] = os.environ.get(v[2:-1], "")
+            else:
+                env[k] = str(v)
             
     server_params = StdioServerParameters(
         command=bq_config["command"],
