@@ -131,7 +131,7 @@ Format your response as a formal "Emergency Grant Recommendation Memo".
 # Define the ADK Agent object so `adk web` can find it
 root_agent = Agent(
     name="anchor_agent",
-    model="gemini-3.1-pro-preview",
+    model="gemini-2.5-pro", # Changed back to standard prod model for Cloud Run Vertex AI compatibility
     instruction=system_instruction,
     tools=[analyze_anchor_fallout]
 )
