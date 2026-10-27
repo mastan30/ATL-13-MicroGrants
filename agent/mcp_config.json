@@ -4,10 +4,10 @@
       "command": "npx",
       "args": [
         "-y",
-        "@server/bigquery"
+        "mcp-bigquery-server"
       ],
       "env": {
-        "GOOGLE_APPLICATION_CREDENTIALS": "/path/to/your/service-account.json"
+        "GOOGLE_APPLICATION_CREDENTIALS": "/config/Desktop/ATL-13-MicroGrants/agent/service-account.json"
       }
     }
   }
