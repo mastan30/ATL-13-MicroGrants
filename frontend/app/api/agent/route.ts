@@ -58,11 +58,13 @@ export async function POST(req: NextRequest) {
       const res = await fetch(targetUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        // ADK's RunAgentRequest takes the user's text as `new_message` (a Content object).
+        // An unknown `message` field is silently dropped, so the agent never sees the question.
         body: JSON.stringify({
           app_name: appName,
-          userId,
-          sessionId,
-          message,
+          user_id: userId,
+          session_id: sessionId,
+          new_message: { role: 'user', parts: [{ text: message }] },
         }),
       });
 
