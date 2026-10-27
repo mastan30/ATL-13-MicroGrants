@@ -83,8 +83,9 @@ def generate_decisions(
 # MCP CLIENT SETUP
 # ---------------------------------------------------------------------------
 async def setup_mcp_client():
-    # Load config
-    with open("mcp_config.json", "r") as f:
+    # Load config using absolute path relative to this file
+    config_path = os.path.join(os.path.dirname(__file__), "mcp_config.json")
+    with open(config_path, "r") as f:
         config = json.load(f)
         
     bq_config = config["mcpServers"]["bigquery"]
