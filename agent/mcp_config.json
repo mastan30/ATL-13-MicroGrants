@@ -8,7 +8,7 @@
       ],
       "env": {
         "BIGQUERY_PROJECT": "your_qwiklabs_project_id_here",
-        "GOOGLE_APPLICATION_CREDENTIALS": "/home/student/Desktop/service-account.json"
+        "GOOGLE_APPLICATION_CREDENTIALS": "/config/Desktop/ATL-13-MicroGrants/agent/service-account.json"
       }
     }
   }
