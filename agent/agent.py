@@ -2,10 +2,9 @@ import asyncio
 import os
 import json
 import pandas as pd
-from google import genai
-from google.genai import types
 from mcp.client.stdio import stdio_client, StdioServerParameters
 from mcp.client.session import ClientSession
+from google_adk import Agent, tool
 
 # ---------------------------------------------------------------------------
 # MCP CLIENT SETUP
@@ -102,6 +101,7 @@ async def analyze_anchor_fallout_logic(employer_name: str) -> str:
 # =====================================================================
 # 2. ADK TOOL DEFINITION
 # =====================================================================
+@tool
 def analyze_anchor_fallout(employer_name: str) -> str:
     """
     Use this tool when an anchor employer is closing.
@@ -110,38 +110,21 @@ def analyze_anchor_fallout(employer_name: str) -> str:
     return asyncio.run(analyze_anchor_fallout_logic(employer_name))
 
 # =====================================================================
-# 3. AGENT CONFIGURATION & HANDOFF API
+# 3. AGENT DEFINITION (FOR ADK CLI & WEB UI)
 # =====================================================================
-def run_agent(employer_name: str) -> str:
-    """Entry point for the Front-End Lead to call."""
-    
-    if "GEMINI_API_KEY" not in os.environ:
-        return "ERROR: You must export GEMINI_API_KEY before running this."
 
-    client = genai.Client()
-    
-    system_instruction = """
-    You are a City Economic Development Officer. You have a $50k emergency micro-grant fund.
-    1. You must ALWAYS use the `analyze_anchor_fallout` tool.
-    2. You must recommend funding the "hidden linchpin" suppliers identified by the tool.
-    3. Explicitly state your assumptions based on BEA federal rates.
-    Format your response as a formal "Emergency Grant Recommendation Memo".
-    """
-    
-    print(f"Agent is analyzing the closure of: {employer_name}...")
-    
-    # Use Chats API as recommended by the new GenAI SDK, and upgrade model version
-    chat = client.chats.create(
-        model='gemini-3.1-pro-preview',
-        config=types.GenerateContentConfig(
-            system_instruction=system_instruction,
-            tools=[analyze_anchor_fallout],
-            temperature=0.2,
-        )
-    )
-    
-    response = chat.send_message(f"The {employer_name} is closing in 90 days. Who should we give our emergency micro-grants to?")
-    return response.text
+system_instruction = """
+You are a City Economic Development Officer. You have a $50k emergency micro-grant fund.
+1. You must ALWAYS use the `analyze_anchor_fallout` tool when a user asks about an employer closing.
+2. You must recommend funding the "hidden linchpin" suppliers identified by the tool.
+3. Explicitly state your assumptions based on BEA federal rates.
+Format your response as a formal "Emergency Grant Recommendation Memo".
+"""
 
-if __name__ == "__main__":
-    print(run_agent("Mint Plaza Office Block"))
+# Define the ADK Agent object so `adk web` can find it
+agent = Agent(
+    name="anchor_agent",
+    model="gemini-3.1-pro-preview",
+    instructions=system_instruction,
+    tools=[analyze_anchor_fallout]
+)
