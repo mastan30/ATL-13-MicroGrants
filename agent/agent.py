@@ -4,7 +4,8 @@ import json
 import pandas as pd
 from mcp.client.stdio import stdio_client, StdioServerParameters
 from mcp.client.session import ClientSession
-from google.adk import Agent, tool
+from google.adk import Agent
+from google.genai import types
 
 # ---------------------------------------------------------------------------
 # MCP CLIENT SETUP
@@ -101,7 +102,7 @@ async def analyze_anchor_fallout_logic(employer_name: str) -> str:
 # =====================================================================
 # 2. ADK TOOL DEFINITION
 # =====================================================================
-@tool
+
 def analyze_anchor_fallout(employer_name: str) -> str:
     """
     Use this tool when an anchor employer is closing.
@@ -125,6 +126,6 @@ Format your response as a formal "Emergency Grant Recommendation Memo".
 agent = Agent(
     name="anchor_agent",
     model="gemini-3.1-pro-preview",
-    instructions=system_instruction,
+    instruction=system_instruction,
     tools=[analyze_anchor_fallout]
 )
