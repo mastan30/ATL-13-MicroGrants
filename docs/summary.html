@@ -42,14 +42,16 @@
         <li><strong>Real Businesses:</strong> Every node represents a real registered business in San Francisco, including its name, address, coordinates, and industry code.</li>
         <li><strong>Real Corridors:</strong> The businesses are grouped using San Francisco's official "business_corridor" designations (e.g., Central Market, North Beach).</li>
         <li><strong>Real Financial Connections:</strong> Connections regarding which bank lent to which business (and which loans were charged off) come from the Small Business Administration's loan records.</li>
-        <li><strong>Modeled Connections:</strong> Supplier and foot-traffic relationships are modeled using industry-level average intensities published by the Bureau of Economic Analysis, applied to local pairs of businesses.</li>
+        <li><strong>Modeled Connections:</strong> Supplier relationships use the Bureau of Economic Analysis's industry purchase intensities, applied to business pairs within 1,200 m. Foot-traffic relationships split each workplace census block's LEHD job count evenly across the retail, food, personal-service and arts businesses within 500 m. The rates and job counts are real; which business is paired with which is our model.</li>
     </ul>
 
     <h2>Summary of the Fields</h2>
     <ul>
-        <li><strong>Node Fields (Businesses):</strong> <code>id</code>, <code>name</code> (dba_name), <code>kind</code> (self_reported_naics_code), <code>jobs</code>, and <code>distress</code>.</li>
-        <li><strong>Edge Fields (Connections):</strong> <code>source_id</code> (where the connection starts), <code>target_id</code> (where the connection ends), and <code>kind</code> (the type of relationship, like "supplies" or "footfall").</li>
-        <li><strong>Geographic Fields:</strong> <code>business_corridor</code>, which groups the businesses.</li>
+        <li><strong>Node Fields (Businesses):</strong> <code>business_id</code>, <code>name</code> (DBA), <code>legal_name</code>, <code>address</code>, <code>zip</code>, <code>naics</code>, <code>naics4</code>, <code>corridor</code>, <code>latitude</code>, <code>longitude</code>. There is no per-business job count or distress field: no public source has them.</li>
+        <li><strong>Node Fields (Employer blocks):</strong> <code>block_id</code>, <code>tract</code>, <code>jobs</code>, <code>lat</code>, <code>lon</code> (the tract's centre point).</li>
+        <li><strong>Edge Fields:</strong> <code>supplies</code> has <code>edge_id</code>, <code>supplier_id</code>, <code>buyer_id</code>, <code>intensity</code>, <code>metres</code>; <code>draws_footfall_from</code> has <code>edge_id</code>, <code>block_id</code>, <code>business_id</code>, <code>worker_share</code>, <code>metres</code>.</li>
+        <li><strong>Loan records:</strong> <code>borrowed_from</code> (<code>business_id</code>, <code>bank_name</code>, <code>gross_approval</code>, <code>approval_date</code>, <code>loan_status</code>, <code>charged_off</code>) is a lookup table keyed by business, not a graph edge: there is no lender node table.</li>
+        <li><strong>Geographic Fields:</strong> <code>corridor</code> groups the businesses. Use the coordinates, not <code>zip</code>: the registry's ZIP is often a mailing address.</li>
     </ul>
 
     <h2>Summary of the Graphs Created</h2>
@@ -59,7 +61,8 @@
     <ul>
         <li><strong>Node Tables:</strong> Contain the individual entities (the businesses) and their properties.</li>
         <li><strong>Edge Tables:</strong> Define the directed relationships between nodes (e.g., Business A supplies Business B).</li>
-        <li><strong>Example Graph (ToyBlock):</strong> A sample graph is created to demonstrate graph traversals, allowing queries to search multiple "hops" downstream (e.g., <code>-[:DependsOn]->{1,3}</code>) to identify exactly how many businesses and jobs are indirectly exposed to a closure.</li>
+        <li><strong>Example Graph (ToyBlock):</strong> A 12-business sample graph that demonstrates multi-hop traversal (e.g., <code>-[:DependsOn]->{1,3}</code>).</li>
+        <li><strong>Our graph (LocalEconomy):</strong> <code>Business</code> and <code>Employer</code> nodes with <code>Supplies</code> and <code>DrawsFootfall</code> edges. For the anchor-closure track the agent goes forward along <code>DrawsFootfall</code>, then backward along <code>Supplies</code> (<code>&lt;-[:Supplies]-</code>), 1 to 2 hops: at 3 hops the cascade reaches 200 of 230 businesses and stops being informative. Cascades count businesses, not jobs.</li>
     </ul>
 
     <h2>Numbered Explanation of What is Created</h2>
