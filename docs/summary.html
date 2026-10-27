@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notebook Summary: Community Economic Resilience & Micro-Grants</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+            max-width: 800px;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        ul, ol {
+            margin-bottom: 20px;
+        }
+        .container {
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Notebook Summary: Community Economic Resilience & Micro-Grants</h1>
+
+    <h2>Detailed Overview of What We Are Building</h2>
+    <p>
+        We are building a data foundation to make a case for micro-grant interventions using a network-based approach.
+        Instead of just ranking businesses by distress, this project models a real commercial corridor as a property graph in BigQuery.
+        The goal is to allow an agent to argue for a grant on the strength of what it protects downstream—for example,
+        identifying if a distressed business is a critical supplier to other healthy businesses, meaning its closure would cause a cascading loss of jobs.
+    </p>
+
+    <h2>Summary of the Data</h2>
+    <ul>
+        <li><strong>Real Businesses:</strong> Every node represents a real registered business in San Francisco, including its name, address, coordinates, and industry code.</li>
+        <li><strong>Real Corridors:</strong> The businesses are grouped using San Francisco's official "business_corridor" designations (e.g., Central Market, North Beach).</li>
+        <li><strong>Real Financial Connections:</strong> Connections regarding which bank lent to which business (and which loans were charged off) come from the Small Business Administration's loan records.</li>
+        <li><strong>Modeled Connections:</strong> Supplier and foot-traffic relationships are modeled using industry-level average intensities published by the Bureau of Economic Analysis, applied to local pairs of businesses.</li>
+    </ul>
+
+    <h2>Summary of the Fields</h2>
+    <ul>
+        <li><strong>Node Fields (Businesses):</strong> <code>id</code>, <code>name</code> (dba_name), <code>kind</code> (self_reported_naics_code), <code>jobs</code>, and <code>distress</code>.</li>
+        <li><strong>Edge Fields (Connections):</strong> <code>source_id</code> (where the connection starts), <code>target_id</code> (where the connection ends), and <code>kind</code> (the type of relationship, like "supplies" or "footfall").</li>
+        <li><strong>Geographic Fields:</strong> <code>business_corridor</code>, which groups the businesses.</li>
+    </ul>
+
+    <h2>Summary of the Graphs Created</h2>
+    <p>
+        The project uses BigQuery Property Graphs (queried with GQL) overlaid on standard relational tables:
+    </p>
+    <ul>
+        <li><strong>Node Tables:</strong> Contain the individual entities (the businesses) and their properties.</li>
+        <li><strong>Edge Tables:</strong> Define the directed relationships between nodes (e.g., Business A supplies Business B).</li>
+        <li><strong>Example Graph (ToyBlock):</strong> A sample graph is created to demonstrate graph traversals, allowing queries to search multiple "hops" downstream (e.g., <code>-[:DependsOn]->{1,3}</code>) to identify exactly how many businesses and jobs are indirectly exposed to a closure.</li>
+    </ul>
+
+    <h2>Numbered Explanation of What is Created</h2>
+    <ol>
+        <li><strong>Project Configuration & Dataset Creation:</strong> Initializes a BigQuery dataset (<code>a4i_econ</code>) and provisions an Enterprise-tier reservation capable of running Graph queries.</li>
+        <li><strong>Toy Data Loading:</strong> Generates and loads an illustrative 12-business dataset to demonstrate the limitations of simple ranking versus the advantages of a network traversal approach.</li>
+        <li><strong>Property Graph Definition:</strong> Creates the <code>ToyBlock</code> graph in BigQuery, declaring the node and edge tables, primary keys, labels, and property schemas without duplicating the underlying data.</li>
+        <li><strong>Graph Query Execution:</strong> Runs a GQL (Graph Query Language) query to traverse the network, illustrating the cascading impact of a business failure up to 3 hops away.</li>
+        <li><strong>Real Data Ingestion:</strong> Connects to the San Francisco Socrata open data portal to fetch real, live business registrations and limits the scope to a specific commercial corridor for actual analysis.</li>
+    </ol>
+</div>
+</body>
+</html>
