@@ -34,10 +34,12 @@ async def setup_mcp_client():
 # =====================================================================
 # 1. THE CUSTOM TOOL (THE "SECRET SAUCE")
 # =====================================================================
-async def analyze_anchor_fallout_logic(employer_name: str) -> str:
+# The ADK runs tools in an async executor if they are defined as async def!
+async def analyze_anchor_fallout(employer_name: str) -> str:
     """
-    Core business logic tool for the Anchor Closure track.
-    Executes a 2-way graph traversal and calculates actual financial vulnerability.
+    Use this tool when an anchor employer is closing.
+    It calculates the hidden supply-chain shockwave by running a 2-way graph traversal
+    and evaluating financial vulnerability.
     """
     
     # THE GQL QUERY
@@ -99,20 +101,6 @@ async def analyze_anchor_fallout_logic(employer_name: str) -> str:
     except Exception as e:
         return f"Error executing graph query via MCP: {e}"
 
-# =====================================================================
-# 2. ADK TOOL DEFINITION
-# =====================================================================
-
-def analyze_anchor_fallout(employer_name: str) -> str:
-    """
-    Use this tool when an anchor employer is closing.
-    It calculates the hidden supply-chain shockwave.
-    """
-    try:
-        loop = asyncio.get_running_loop()
-        return loop.run_until_complete(analyze_anchor_fallout_logic(employer_name))
-    except RuntimeError:
-        return asyncio.run(analyze_anchor_fallout_logic(employer_name))
 
 # =====================================================================
 # 3. AGENT DEFINITION (FOR ADK CLI & WEB UI)
