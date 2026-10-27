@@ -29,3 +29,4 @@ data/*.csv
 !data/bea_naics_concordance.csv
 /.idea/
 agent/apiKeyForGoogleStudio
+agent/gitToken
