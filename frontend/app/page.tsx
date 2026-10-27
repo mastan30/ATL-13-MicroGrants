@@ -175,17 +175,15 @@ export default function MicroGrantsDashboard() {
             }}
             onSelectBusiness={(biz) => setSelectedBusiness(biz)}
           />
-
-          {/* Instant Hover Card */}
-          <HoverCard business={hoveredBusiness} position={hoverPosition} />
-
-          {/* Click Detail Drawer */}
-          <DetailSidePanel
-            business={selectedBusiness}
-            runnerUp={data.runner_up}
-            onClose={() => setSelectedBusiness(null)}
-          />
         </div>
+
+        {/* Global Floating Overlays (outside overflow-hidden map container) */}
+        <HoverCard business={hoveredBusiness} position={hoverPosition} />
+        <DetailSidePanel
+          business={selectedBusiness}
+          runnerUp={data.runner_up}
+          onClose={() => setSelectedBusiness(null)}
+        />
 
         {/* Bottom Equity Audit & Performance Metrics Bar */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

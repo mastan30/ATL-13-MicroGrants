@@ -34,7 +34,19 @@ export const DetailSidePanel: React.FC<DetailSidePanelProps> = ({
   const isExposed = business.status === 'exposed_not_funded';
 
   return (
-    <div className="fixed inset-y-0 right-0 z-40 w-full sm:w-[460px] bg-slate-900/98 border-l border-slate-700/80 shadow-2xl backdrop-blur-xl flex flex-col text-slate-100 overflow-hidden transition-transform duration-300 ease-in-out">
+    <>
+      {/* Backdrop */}
+      <div
+        style={{ zIndex: 9997 }}
+        className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs transition-opacity"
+        onClick={onClose}
+      />
+
+      {/* Drawer */}
+      <div
+        style={{ zIndex: 9998 }}
+        className="fixed inset-y-0 right-0 z-[9998] w-full sm:w-[480px] bg-slate-900/98 border-l border-slate-700/80 shadow-2xl backdrop-blur-xl flex flex-col text-slate-100 overflow-hidden transition-transform duration-300 ease-in-out"
+      >
       {/* Header */}
       <div className="p-5 border-b border-slate-800 bg-slate-950/60 flex items-start justify-between gap-4">
         <div>
@@ -254,5 +266,6 @@ export const DetailSidePanel: React.FC<DetailSidePanelProps> = ({
         )}
       </div>
     </div>
+    </>
   );
 };

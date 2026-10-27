@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { BusinessDecision } from '@/types/scenario';
-import { ShieldAlert, CheckCircle2, AlertTriangle, Building2, TrendingDown } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Building2 } from 'lucide-react';
 
 interface HoverCardProps {
   business: BusinessDecision | null;
@@ -28,14 +28,31 @@ export const HoverCard: React.FC<HoverCardProps> = ({ business, position }) => {
     ? 'EXPOSED (NOT FUNDED)'
     : 'UNAFFECTED';
 
-  // Ensure card stays on screen
-  const left = Math.min(Math.max(position.x + 16, 20), window.innerWidth - 380);
-  const top = Math.min(Math.max(position.y - 40, 70), window.innerHeight - 320);
+  // Client window boundary calculations
+  const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
+  const windowHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
+
+  // Position card offset from cursor, keeping inside viewport
+  let left = position.x + 20;
+  if (left + 360 > windowWidth) {
+    left = position.x - 380;
+  }
+  left = Math.max(16, left);
+
+  let top = position.y - 20;
+  if (top + 280 > windowHeight) {
+    top = windowHeight - 300;
+  }
+  top = Math.max(16, top);
 
   return (
     <div
-      style={{ left: `${left}px`, top: `${top}px` }}
-      className="fixed z-50 w-88 pointer-events-none rounded-xl border border-slate-700/80 bg-slate-900/95 p-4 shadow-2xl backdrop-blur-md transition-all duration-150 ease-out text-slate-100"
+      style={{
+        left: `${left}px`,
+        top: `${top}px`,
+        zIndex: 9999,
+      }}
+      className="fixed pointer-events-none w-88 rounded-xl border border-slate-700/80 bg-slate-900/98 p-4 shadow-2xl backdrop-blur-md transition-opacity duration-150 text-slate-100 ring-1 ring-white/10"
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-2.5">
@@ -93,8 +110,8 @@ export const HoverCard: React.FC<HoverCardProps> = ({ business, position }) => {
         </p>
       </div>
 
-      <div className="mt-2 text-[10px] text-slate-500 text-right">
-        Click marker for full path traversal & equity audit →
+      <div className="mt-2 text-[10px] text-slate-400 font-medium text-right">
+        Click marker to open full drilldown drawer →
       </div>
     </div>
   );

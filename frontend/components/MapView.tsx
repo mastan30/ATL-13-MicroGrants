@@ -161,30 +161,17 @@ export const MapView: React.FC<MapViewProps> = ({
             weight,
           }).addTo(map);
 
-          // Add native tooltip for guaranteed accessibility
-          const tooltipContent = `
-            <div style="font-family: system-ui, sans-serif;">
-              <strong style="color: #ffffff; font-size: 12px;">${biz.name}</strong><br/>
-              <span style="color: ${isFunded ? '#34d399' : isExposed ? '#fbbf24' : '#94a3b8'}; font-weight: 700;">
-                ${isFunded ? '$' + biz.amount.toLocaleString() + ' (FUNDED)' : isExposed ? 'EXPOSED (' + (biz.exposure * 100).toFixed(0) + '%)' : 'UNAFFECTED'}
-              </span>
-            </div>
-          `;
-          circle.bindTooltip(tooltipContent, {
-            direction: 'top',
-            offset: [0, -8],
-            className: 'custom-leaflet-tooltip',
-          });
-
-          // Hover events for React floating card
+          // Hover events for React floating card with exact screen coordinates
           circle.on('mouseover', (e: any) => {
-            const containerPoint = e.containerPoint;
-            onHoverBusiness(biz, { x: containerPoint.x, y: containerPoint.y });
+            const clientX = e.originalEvent ? e.originalEvent.clientX : (e.containerPoint?.x ?? 0);
+            const clientY = e.originalEvent ? e.originalEvent.clientY : (e.containerPoint?.y ?? 0);
+            onHoverBusiness(biz, { x: clientX, y: clientY });
           });
 
           circle.on('mousemove', (e: any) => {
-            const containerPoint = e.containerPoint;
-            onHoverBusiness(biz, { x: containerPoint.x, y: containerPoint.y });
+            const clientX = e.originalEvent ? e.originalEvent.clientX : (e.containerPoint?.x ?? 0);
+            const clientY = e.originalEvent ? e.originalEvent.clientY : (e.containerPoint?.y ?? 0);
+            onHoverBusiness(biz, { x: clientX, y: clientY });
           });
 
           circle.on('mouseout', () => {
