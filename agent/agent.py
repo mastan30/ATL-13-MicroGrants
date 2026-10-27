@@ -130,9 +130,9 @@ def run_agent(employer_name: str) -> str:
     
     print(f"Agent is analyzing the closure of: {employer_name}...")
     
-    response = client.models.generate_content(
-        model='gemini-2.5-pro',
-        contents=f"The {employer_name} is closing in 90 days. Who should we give our emergency micro-grants to?",
+    # Use Chats API as recommended by the new GenAI SDK, and upgrade model version
+    chat = client.chats.create(
+        model='gemini-3.1-pro-preview',
         config=types.GenerateContentConfig(
             system_instruction=system_instruction,
             tools=[analyze_anchor_fallout],
@@ -140,6 +140,7 @@ def run_agent(employer_name: str) -> str:
         )
     )
     
+    response = chat.send_message(f"The {employer_name} is closing in 90 days. Who should we give our emergency micro-grants to?")
     return response.text
 
 if __name__ == "__main__":
