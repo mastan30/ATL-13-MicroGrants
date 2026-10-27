@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Tables Summary & Diagram</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f7f6;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        .section {
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            margin-bottom: 30px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #e9ecef;
+            font-weight: 600;
+        }
+        .schema-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .table-card {
+            border: 1px solid #d1d8e0;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #fff;
+        }
+        .table-header {
+            background-color: #2c3e50;
+            color: #fff;
+            padding: 10px 15px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+        }
+        .table-role {
+            font-size: 0.85em;
+            background: #34495e;
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+        .table-role.node { background: #27ae60; }
+        .table-role.edge { background: #d35400; }
+        .table-role.attr { background: #8e44ad; }
+        .col-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .col-list li {
+            padding: 8px 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+        }
+        .col-list li:last-child {
+            border-bottom: none;
+        }
+        .col-name {
+            font-weight: 600;
+            font-family: monospace;
+            color: #d35400;
+        }
+        .col-type {
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+        .col-desc {
+            display: block;
+            font-size: 0.85em;
+            color: #7f8c8d;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+<h1>Notebook Data Layer Summary & Diagram</h1>
+
+<div class="section">
+    <h2>Summary of Tables</h2>
+    <p>The notebook creates a total of <strong>six tables</strong> in BigQuery. The data splits into Node tables (things), Edge tables (relationships), and Attribute tables (enrichment data). This explicit division matches exactly what BigQuery's <code>CREATE PROPERTY GRAPH</code> statement requires.</p>
+
+    <table>
+        <thead>
+        <tr>
+            <th>Table Name</th>
+            <th>Role</th>
+            <th>How Real?</th>
+            <th>Description</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td><code>businesses</code></td>
+            <td>Node</td>
+            <td><strong>Real</strong></td>
+            <td>Registered businesses in the corridor. Source: San Francisco city open data.</td>
+        </tr>
+        <tr>
+            <td><code>employer_blocks</code></td>
+            <td>Node</td>
+            <td><strong>Real</strong> jobs, Approx. Location</td>
+            <td>Workplace census blocks with real LEHD job counts. Locations are approximated to the census tract level.</td>
+        </tr>
+        <tr>
+            <td><code>supplies</code></td>
+            <td>Edge</td>
+            <td>Modeled Pairing</td>
+            <td>Represents supply-chain relationships. BEA industry purchase intensity allocated probabilistically to co-located business pairs.</td>
+        </tr>
+        <tr>
+            <td><code>draws_footfall_from</code></td>
+            <td>Edge</td>
+            <td>Modeled Pairing</td>
+            <td>Represents consumer foot traffic. LEHD workplace job counts allocated to nearby consumer businesses.</td>
+        </tr>
+        <tr>
+            <td><code>borrowed_from</code></td>
+            <td>Edge</td>
+            <td><strong>Fully Real</strong></td>
+            <td>SBA 7(a) FOIA loan records (FY2020-present) showing business to lender relationships, including failures (charge-offs).</td>
+        </tr>
+        <tr>
+            <td><code>tract_demographics</code></td>
+            <td>Attribute</td>
+            <td><strong>Real</strong></td>
+            <td>ACS (American Community Survey) 5-year estimates for census tracts overlapping the corridor.</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="section">
+    <h2>Detailed Table Diagram (Schema)</h2>
+    <p>Below is the detailed schema layout constructed from the notebook dataframes, including data types and relationship origins.</p>
+
+    <div class="schema-container">
+        <!-- Businesses Table -->
+        <div class="table-card">
+            <div class="table-header">
+                <span>businesses</span>
+                <span class="table-role node">Node</span>
+            </div>
+            <ul class="col-list">
+                <li>
+                    <div>
+                        <span class="col-name">business_id</span>
+                        <span class="col-desc">Primary Key</span>
+                    </div>
+                    <span class="col-type">String</span>
+                </li>
+                <li><div><span class="col-name">name</span><span class="col-desc">DBA (Doing Business As) name</span></div><span class="col-type">String</span></li>
+                <li><div><span class="col-name">legal_name</span></div><span class="col-type">String</span></li>
+                <li><div><span class="col-name">address</span></div><span class="col-type">String</span></li>
+                <li><div><span class="col-name">zip</span><span class="col-desc">First 5 digits</span></div><span class="col-type">String</span></li>
+                <li><div><span class="col-name">naics</span><span class="col-desc">Self-reported industry code</span></div><span class="col-type">String</span></li>
+                <li><div><span class="col-name">naics4</span><span class="col-desc">4-digit rollup of NAICS</span></div><span class="col-type">String</span></li>
+                <li><div><span class="col-name">corridor</span><span class="col-desc">City assigned bounding region</span></div><span class="col-type">String</span></li>
+                <li><div><span class="col-name">latitude</span></div><span class="col-type">Float</span></li>
+                <li><div><span class="col-name">longitude</span></div><span class="col-type">Float</span></li>
+            </ul>
+        </div>
+
+        <!-- Employer Blocks Table -->
+        <div class="table-card">
+            <div class="table-header">
+                <span>employer_blocks</span>
+                <span class="table-role node">Node</span>
+            </div>
+            <ul class="col-list">
+                <li>
+                    <div>
+                        <span class="col-name">block_id</span>
+                        <span class="col-desc">Primary Key (Census Block ID)</span>
+                    </div>
+                    <span class="col-type">String</span>
+                </li>
+                <li><div><span class="col-name">tract</span><span class="col-desc">Associated Census Tract</span></div><span class="col-type">String</span></li>
+                <li><div><span class="col-name">jobs</span><span class="col-desc">Count of LEHD jobs</span></div><span class="col-type">Integer</span></li>
+                <li><div><span class="col-name">lat</span><span class="col-desc">Tract internal point</span></div><span class="col-type">Float</span></li>
+                <li><div><span class="col-name">lon</span><span class="col-desc">Tract internal point</span></div><span class="col-type">Float</span></li>
+            </ul>
+        </div>
+
+        <!-- Supplies Table -->
+        <div class="table-card">
+            <div class="table-header">
+                <span>supplies</span>
+                <span class="table-role edge">Edge</span>
+            </div>
+            <ul class="col-list">
+                <li>
+                    <div>
+                        <span class="col-name">edge_id</span>
+                        <span class="col-desc">Composite of supplier|buyer</span>
+                    </div>
+                    <span class="col-type">String</span>
+                </li>
+                <li>
+                    <div>
+                        <span class="col-name">supplier_id</span>
+                        <span class="col-desc">References businesses.business_id</span>
+                    </div>
+                    <span class="col-type">String</span>
+                </li>
+                <li>
+                    <div>
+                        <span class="col-name">buyer_id</span>
+                        <span class="col-desc">References businesses.business_id</span>
+                    </div>
+                    <span class="col-type">String</span>
+                </li>
+                <li><div><span class="col-name">intensity</span><span class="col-desc">Allocated purchase coefficient</span></div><span class="col-type">Float</span></li>
+                <li><div><span class="col-name">metres</span><span class="col-desc">Distance between businesses</span></div><span class="col-type">Float</span></li>
+            </ul>
+        </div>
+
+        <!-- Footfall Table -->
+        <div class="table-card">
+            <div class="table-header">
+                <span>draws_footfall_from</span>
+                <span class="table-role edge">Edge</span>
+            </div>
+            <ul class="col-list">
+                <li>
+                    <div>
+                        <span class="col-name">edge_id</span>
+                        <span class="col-desc">Composite of block|business</span>
+                    </div>
+                    <span class="col-type">String</span>
+                </li>
+                <li>
+                    <div>
+                        <span class="col-name">block_id</span>
+                        <span class="col-desc">References employer_blocks.block_id</span>
+                    </div>
+                    <span class="col-type">String</span>
+                </li>
+                <li>
+                    <div>
+                        <span class="col-name">business_id</span>
+                        <span class="col-desc">References businesses.business_id</span>
+                    </div>
+                    <span class="col-type">String</span>
+                </li>
+                <li><div><span class="col-name">worker_share</span><span class="col-desc">Allocated jobs share</span></div><span class="col-type">Float</span></li>
+                <li><div><span class="col-name">metres</span><span class="col-desc">Distance to business</span></div><span class="col-type">Float</span></li>
+            </ul>
+        </div>
+
+        <!-- Borrowed From Table -->
+        <div class="table-card">
+            <div class="table-header">
+                <span>borrowed_from</span>
+                <span class="table-role edge">Edge</span>
+            </div>
+            <ul class="col-list">
+                <li>
+                    <div>
+                        <span class="col-name">business_id</span>
+                        <span class="col-desc">References businesses.business_id</span>
+                    </div>
+                    <span class="col-type">String</span>
+                </li>
+                <li><div><span class="col-name">bank_name</span><span class="col-desc">Name of lender</span></div><span class="col-type">String</span></li>
+                <li><div><span class="col-name">gross_approval</span><span class="col-desc">Loan amount</span></div><span class="col-type">Float</span></li>
+                <li><div><span class="col-name">approval_date</span><span class="col-desc">Loan date</span></div><span class="col-type">String</span></li>
+                <li><div><span class="col-name">loan_status</span><span class="col-desc">SBA loan status</span></div><span class="col-type">String</span></li>
+                <li><div><span class="col-name">charged_off</span><span class="col-desc">Indicates if loan failed (True/False)</span></div><span class="col-type">Boolean</span></li>
+            </ul>
+        </div>
+
+        <!-- Demographics Table -->
+        <div class="table-card">
+            <div class="table-header">
+                <span>tract_demographics</span>
+                <span class="table-role attr">Attribute Table</span>
+            </div>
+            <ul class="col-list">
+                <li>
+                    <div>
+                        <span class="col-name">geo_id</span>
+                        <span class="col-desc">11-digit Tract ID</span>
+                    </div>
+                    <span class="col-type">String</span>
+                </li>
+                <li><div><span class="col-name">total_pop</span><span class="col-desc">Total Population</span></div><span class="col-type">Float</span></li>
+                <li><div><span class="col-name">median_income</span><span class="col-desc">Median Household Income</span></div><span class="col-type">Float</span></li>
+                <li><div><span class="col-name">poverty_rate</span><span class="col-desc">Calculated % in poverty</span></div><span class="col-type">Float</span></li>
+                <li><div><span class="col-name">no_vehicle_rate</span><span class="col-desc">Calculated % without cars</span></div><span class="col-type">Float</span></li>
+                <li><div><span class="col-name">assistance_rate</span><span class="col-desc">Calculated % on public assistance</span></div><span class="col-type">Float</span></li>
+            </ul>
+        </div>
+
+    </div>
+</div>
+</body>
+</html>
