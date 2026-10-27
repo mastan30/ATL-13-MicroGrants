@@ -17,11 +17,16 @@ async def setup_mcp_client():
         
     bq_config = config["mcpServers"]["bigquery"]
     
-    # Set the environment variable for Google Credentials
+    # Map the env variables required by the npm package properly
     env = os.environ.copy()
-    if "env" in bq_config and "GOOGLE_APPLICATION_CREDENTIALS" in bq_config["env"]:
-        env["GOOGLE_APPLICATION_CREDENTIALS"] = bq_config["env"]["GOOGLE_APPLICATION_CREDENTIALS"]
-    
+    if "env" in bq_config:
+        if "GOOGLE_APPLICATION_CREDENTIALS" in bq_config["env"]:
+            env["GOOGLE_APPLICATION_CREDENTIALS"] = bq_config["env"]["GOOGLE_APPLICATION_CREDENTIALS"]
+        if "BIGQUERY_PROJECT" in bq_config["env"]:
+            env["BIGQUERY_PROJECT"] = bq_config["env"]["BIGQUERY_PROJECT"]
+        if "PROJECT_ID" in bq_config["env"]:
+            env["PROJECT_ID"] = bq_config["env"]["PROJECT_ID"]
+            
     server_params = StdioServerParameters(
         command=bq_config["command"],
         args=bq_config["args"],

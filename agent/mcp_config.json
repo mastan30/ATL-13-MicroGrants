@@ -7,7 +7,8 @@
         "mcp-bigquery-server"
       ],
       "env": {
-        "BIGQUERY_PROJECT": "your_qwiklabs_project_id_here",
+        "BIGQUERY_PROJECT": "qwiklabs-gcp-04-e4952d3717e9",
+        "PROJECT_ID": "qwiklabs-gcp-04-e4952d3717e9",
         "GOOGLE_APPLICATION_CREDENTIALS": "/config/Desktop/ATL-13-MicroGrants/agent/service-account.json"
       }
     }
