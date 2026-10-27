@@ -8,8 +8,7 @@
       ],
       "env": {
         "BIGQUERY_PROJECT": "qwiklabs-gcp-04-e4952d3717e9",
-        "PROJECT_ID": "qwiklabs-gcp-04-e4952d3717e9",
-        "GOOGLE_APPLICATION_CREDENTIALS": "/config/Desktop/ATL-13-MicroGrants/agent/service-account.json"
+        "GOOGLE_APPLICATION_CREDENTIALS_JSON": "${SERVICE_ACCOUNT_JSON}"
       }
     }
   }

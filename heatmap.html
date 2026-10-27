@@ -1,0 +1,51 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Central Market - Economic Connections</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+    <style>
+        #map { height: 600px; width: 100%; }
+        body { font-family: sans-serif; margin: 0; padding: 20px; }
+    </style>
+</head>
+<body>
+    <h2>Central Market - Anchor Closure Heatmap</h2>
+    <p>This map simulates the Anchor Closure track. It shows a cluster of businesses near the major employer block.</p>
+    <div id="map"></div>
+
+    <script>
+        // Central Market roughly centered
+        var map = L.map('map').setView([37.7800, -122.4090], 15);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        var data = [{"business_id": "b1", "name": "Bayside Roasters", "lat": 37.7788, "lng": -122.4111}, {"business_id": "b2", "name": "Sixth St Cafe", "lat": 37.7795, "lng": -122.4095}, {"business_id": "b3", "name": "Yerba Deli", "lat": 37.7812, "lng": -122.4055}, {"business_id": "b4", "name": "Kearny Kitchen", "lat": 37.7801, "lng": -122.4072}, {"business_id": "b5", "name": "Larkin Event Hall", "lat": 37.777, "lng": -122.414}, {"business_id": "b6", "name": "Corner Frame Shop", "lat": 37.782, "lng": -122.403}, {"business_id": "e1", "name": "Mint Plaza Office Block", "lat": 37.7828, "lng": -122.4068, "is_employer": true, "workers": 1400}];
+        
+        var heatData = [];
+        data.forEach(function(item) {
+            heatData.push([item.lat, item.lng, item.is_employer ? 2.0 : 0.5]);
+            
+            var marker = L.circleMarker([item.lat, item.lng], {
+                radius: item.is_employer ? 12 : 6,
+                color: item.is_employer ? '#c2185b' : '#1565c0',
+                fillColor: item.is_employer ? '#f48fb1' : '#bbdefb',
+                fillOpacity: 0.8
+            }).addTo(map);
+            
+            marker.bindPopup("<b>" + item.name + "</b>" + (item.is_employer ? "<br/>Workers: " + item.workers : "<br/>Business"));
+        });
+
+        // Add a heatmap layer to simulate activity/density
+        var heat = L.heatLayer(heatData, {radius: 40, blur: 20, maxZoom: 15}).addTo(map);
+
+    </script>
+</body>
+</html>
